@@ -25,6 +25,7 @@
 #include "Font.h"
 #include "FontDescription.h"
 #include "StyleFontSizeFunctions.h"
+#include <skia/core/SkGraphics.h>
 #include <skia/ports/SkFontMgr_fontconfig.h>
 #include <wtf/Assertions.h>
 #include <wtf/text/CString.h>
@@ -313,6 +314,11 @@ void FontCache::platformInvalidate()
 void FontCache::platformPurgeInactiveFontData()
 {
     m_harfBuzzFontCache.clear();
+}
+
+void FontCache::platformReleaseNoncriticalMemoryInAllFontCaches()
+{
+    SkGraphics::PurgeFontCache();
 }
 
 } // namespace WebCore

@@ -165,6 +165,7 @@ public:
     void platformPurgeInactiveFontData();
 
     static void releaseNoncriticalMemoryInAllFontCaches();
+    static void platformReleaseNoncriticalMemoryInAllFontCaches();
 
     void updateFontCascade(const FontCascade&, RefPtr<FontSelector>&&);
 

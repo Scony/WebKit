@@ -449,6 +449,7 @@ void FontCache::releaseNoncriticalMemoryInAllFontCaches()
     dispatchToAllFontCaches([](FontCache& fontCache) {
         fontCache.releaseNoncriticalMemory();
     });
+    platformReleaseNoncriticalMemoryInAllFontCaches();
 }
 
 bool FontCache::useBackslashAsYenSignForFamily(const AtomString& family)
@@ -471,6 +472,14 @@ bool FontCache::useBackslashAsYenSignForFamily(const AtomString& family)
 
     return m_familiesUsingBackslashAsYenSign.contains(family);
 }
+
+#if !USE(SKIA)
+
+void FontCache::platformReleaseNoncriticalMemoryInAllFontCaches()
+{
+}
+
+#endif
 
 #if !PLATFORM(COCOA)
 
