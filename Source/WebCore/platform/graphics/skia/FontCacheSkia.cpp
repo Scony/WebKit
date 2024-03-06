@@ -25,6 +25,7 @@
 #include "Font.h"
 #include "FontDescription.h"
 #include "StyleFontSizeFunctions.h"
+#include <skia/core/SkGraphics.h>
 #include <skia/ports/SkFontMgr_fontconfig.h>
 #include <wtf/Assertions.h>
 #include <wtf/text/CString.h>
@@ -304,6 +305,11 @@ std::unique_ptr<FontPlatformData> FontCache::createFontPlatformData(const FontDe
 std::optional<ASCIILiteral> FontCache::platformAlternateFamilyName(const String&)
 {
     return std::nullopt;
+}
+
+void FontCache::platformReleaseNoncriticalMemory()
+{
+    SkGraphics::PurgeFontCache();
 }
 
 void FontCache::platformInvalidate()
