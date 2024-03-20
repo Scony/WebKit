@@ -32,6 +32,7 @@
 #include "xdg-shell-client-protocol.h"
 #include <fcntl.h>
 #include <gio/gio.h>
+#include <stdio.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <wtf/FastMalloc.h>
@@ -460,11 +461,11 @@ static struct wl_buffer* createWaylandBufferFromEGLImage(WPEView* view, WPEBuffe
         return nullptr;
     }
 
-    static PFNEGLCREATEWAYLANDBUFFERFROMIMAGEWL s_eglCreateWaylandBufferFromImageWL;
-    if (!s_eglCreateWaylandBufferFromImageWL) {
+    static auto s_eglCreateWaylandBufferFromImageWL = ([eglDisplay]() -> PFNEGLCREATEWAYLANDBUFFERFROMIMAGEWL {
         if (epoxy_has_egl_extension(eglDisplay, "EGL_WL_create_wayland_buffer_from_image"))
-            s_eglCreateWaylandBufferFromImageWL = reinterpret_cast<PFNEGLCREATEWAYLANDBUFFERFROMIMAGEWL>(epoxy_eglGetProcAddress("eglCreateWaylandBufferFromImageWL"));
-    }
+            return reinterpret_cast<PFNEGLCREATEWAYLANDBUFFERFROMIMAGEWL>(epoxy_eglGetProcAddress("eglCreateWaylandBufferFromImageWL"));
+        return nullptr;
+    })();
     if (!s_eglCreateWaylandBufferFromImageWL) {
         g_set_error_literal(error, WPE_VIEW_ERROR, WPE_VIEW_ERROR_RENDER_FAILED, "Failed to render buffer: eglCreateWaylandBufferFromImageWL is not available");
         return nullptr;
@@ -632,10 +633,12 @@ static gboolean wpeViewWaylandRenderBuffer(WPEView* view, WPEBuffer* buffer, WPE
 
     wl_surface_attach(wlSurface, wlBuffer, 0, 0);
     if (damageRects) {
+        RELEASE_ASSERT(damageRectsCount > 0);
         for (unsigned i = 0; i < damageRectsCount; ++i)
-            wl_surface_damage(wlSurface, damageRects[i].x, damageRects[i].y, damageRects[i].width, damageRects[i].height);
+            wl_surface_damage_buffer(wlSurface, damageRects[i].x, damageRects[i].y, damageRects[i].width, damageRects[i].height);
     } else
-        wl_surface_damage(wlSurface, 0, 0, wpe_view_get_width(view), wpe_view_get_height(view));
+        wl_surface_damage_buffer(wlSurface, 0, 0, INT32_MAX, INT32_MAX);
+
     priv->frameCallback = wl_surface_frame(wlSurface);
     wl_callback_add_listener(priv->frameCallback, &frameListener, view);
     wl_surface_commit(wlSurface);
