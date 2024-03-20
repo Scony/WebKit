@@ -181,8 +181,21 @@ AcceleratedBackingStoreDMABuf::BufferDMABuf::BufferDMABuf(uint64_t id, const Web
 {
 }
 
-void AcceleratedBackingStoreDMABuf::BufferDMABuf::didUpdateContents()
+void AcceleratedBackingStoreDMABuf::BufferDMABuf::didUpdateContents(Buffer* previousBuffer, const Vector<WebCore::IntRect>& damageRects)
 {
+    if (!damageRects.isEmpty() && previousBuffer && previousBuffer->texture()) {
+        gdk_dmabuf_texture_builder_set_update_texture(m_builder.get(), previousBuffer->texture());
+        RefPtr<cairo_region_t> cairoRegion = adoptRef(cairo_region_create());
+        for (const auto& rect : damageRects) {
+            cairo_rectangle_int_t cairoRect = rect;
+            cairo_region_union_rectangle(cairoRegion.get(), &cairoRect);
+        }
+        gdk_dmabuf_texture_builder_set_update_region(m_builder.get(), cairoRegion.get());
+    } else {
+        gdk_dmabuf_texture_builder_set_update_texture(m_builder.get(), nullptr);
+        gdk_dmabuf_texture_builder_set_update_region(m_builder.get(), nullptr);
+    }
+
     GUniqueOutPtr<GError> error;
     m_texture = adoptGRef(gdk_dmabuf_texture_builder_build(m_builder.get(), nullptr, nullptr, &error.outPtr()));
     if (!m_texture)
@@ -278,7 +291,7 @@ struct Texture {
 };
 WEBKIT_DEFINE_ASYNC_DATA_STRUCT(Texture)
 
-void AcceleratedBackingStoreDMABuf::BufferEGLImage::didUpdateContents()
+void AcceleratedBackingStoreDMABuf::BufferEGLImage::didUpdateContents(Buffer*, const Vector<WebCore::IntRect>&)
 {
     auto* texture = createTexture();
     glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, m_image);
@@ -288,7 +301,7 @@ void AcceleratedBackingStoreDMABuf::BufferEGLImage::didUpdateContents()
     }, texture));
 }
 #else
-void AcceleratedBackingStoreDMABuf::BufferEGLImage::didUpdateContents()
+void AcceleratedBackingStoreDMABuf::BufferEGLImage::didUpdateContents(Buffer*, const Vector<WebCore::IntRect>&)
 {
     if (m_textureID)
         return;
@@ -334,7 +347,7 @@ AcceleratedBackingStoreDMABuf::BufferGBM::~BufferGBM()
     gbm_bo_destroy(m_buffer);
 }
 
-void AcceleratedBackingStoreDMABuf::BufferGBM::didUpdateContents()
+void AcceleratedBackingStoreDMABuf::BufferGBM::didUpdateContents(Buffer*, const Vector<WebCore::IntRect>&)
 {
     uint32_t mapStride = 0;
     void* mapData = nullptr;
@@ -373,7 +386,7 @@ AcceleratedBackingStoreDMABuf::BufferSHM::BufferSHM(uint64_t id, RefPtr<WebCore:
 {
 }
 
-void AcceleratedBackingStoreDMABuf::BufferSHM::didUpdateContents()
+void AcceleratedBackingStoreDMABuf::BufferSHM::didUpdateContents(Buffer*, const Vector<WebCore::IntRect>&)
 {
 #if USE(CAIRO)
     m_surface = m_bitmap->createCairoSurface();
@@ -497,7 +510,7 @@ void AcceleratedBackingStoreDMABuf::didDestroyBuffer(uint64_t id)
     m_buffers.remove(id);
 }
 
-void AcceleratedBackingStoreDMABuf::frame(uint64_t bufferID)
+void AcceleratedBackingStoreDMABuf::frame(uint64_t bufferID, const Vector<WebCore::IntRect>& damagedRects)
 {
     ASSERT(!m_pendingBuffer);
     auto* buffer = m_buffers.get(bufferID);
@@ -510,7 +523,7 @@ void AcceleratedBackingStoreDMABuf::frame(uint64_t bufferID)
         ensureGLContext();
         gdk_gl_context_make_current(m_gdkGLContext.get());
     }
-    buffer->didUpdateContents();
+    buffer->didUpdateContents(m_committedBuffer.get(), damagedRects);
 
     m_pendingBuffer = buffer;
     gtk_widget_queue_draw(m_webPage.viewWidget());
