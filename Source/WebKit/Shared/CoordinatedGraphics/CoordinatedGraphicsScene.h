@@ -72,7 +72,7 @@ public:
     bool isActive() const { return m_isActive; }
     void setActive(bool active) { m_isActive = active; }
 
-    const Vector<WebCore::IntRect> lastDamagedRects() const { return m_lastDamagedRects; }
+    const Vector<WebCore::IntRect>& lastDamagedRects() const { return m_lastDamagedRects; }
 
     void recordDamage(WebCore::FloatRect) override;
 

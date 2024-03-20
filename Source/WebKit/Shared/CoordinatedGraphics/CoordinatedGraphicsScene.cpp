@@ -479,6 +479,12 @@ void CoordinatedGraphicsScene::detach()
 
 void CoordinatedGraphicsScene::recordDamage(FloatRect damagedRect)
 {
+    if (damagedRect.isEmpty()) {
+        WTFLogAlways("%s: Got empty damage rect :-(", __func__);
+        CRASH();
+        return;
+    }
+
     auto adjustedRect = enclosingIntRect(damagedRect);
     if (Nicosia::bufDamageUnifiedRegion()) {
         if (m_lastDamagedRects.isEmpty()) {

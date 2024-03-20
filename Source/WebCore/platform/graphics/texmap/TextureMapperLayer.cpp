@@ -1096,6 +1096,8 @@ void TextureMapperLayer::markDamaged(std::optional<FloatRect> target)
 
     auto newRegion = target ? (*target) : layerRect();
 
+    RELEASE_ASSERT(!newRegion.isEmpty());
+
     if (Nicosia::bufDamageUnifiedRegion()) {
         if (m_damaged.isEmpty())
             m_damaged.append(newRegion);

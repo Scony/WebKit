@@ -228,7 +228,6 @@ private:
     RefPtr<BitmapTexture> acquireTextureForAcceleratedBuffer(const IntSize&);
 #endif
 
-    void addDamageRegion(const FloatRect& region);
 
     Nicosia::PlatformLayer::LayerID m_id;
     GraphicsLayerTransform m_layerTransform;

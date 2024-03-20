@@ -511,7 +511,11 @@ void GLContext::swapBuffersWithDamage(const Vector<IntRect>& rects)
     }
 
     ASSERT(m_surface);
-    m_eglSwapBuffersWithDamage(m_display.eglDisplay(), m_surface, rectsPtr.get(), rects.size());
+    if (m_eglSwapBuffersWithDamage(m_display.eglDisplay(), m_surface, rectsPtr.get(), rects.size()) == EGL_TRUE)
+        return;
+
+    // XXX: Maybe check for errors when using the fallback as well?
+    eglSwapBuffers(m_display.eglDisplay(), m_surface);
 }
 
 

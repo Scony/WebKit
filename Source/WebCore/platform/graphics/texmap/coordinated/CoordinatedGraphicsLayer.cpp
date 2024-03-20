@@ -417,7 +417,6 @@ void CoordinatedGraphicsLayer::setContentsOpaque(bool b)
         m_needsDisplay.rects.clear();
 
         FloatRect layerRect { { }, m_size };
-        addDamageRegion(layerRect);
         addRepaintRect(layerRect);
     }
 
@@ -511,7 +510,6 @@ void CoordinatedGraphicsLayer::setContentsNeedsDisplay()
 
     notifyFlushRequired();
     auto damagedRegion = contentsRect();
-    addDamageRegion(damagedRegion);
     addRepaintRect(damagedRegion);
 }
 
@@ -686,12 +684,6 @@ void CoordinatedGraphicsLayer::setReplicatedByLayer(RefPtr<GraphicsLayer>&& laye
     notifyFlushRequired();
 }
 
-void CoordinatedGraphicsLayer::addDamageRegion(const FloatRect& region)
-{
-    m_nicosia.delta.damagedRectsChanged = true;
-    m_nicosia.damagedRects.append(region);
-}
-
 void CoordinatedGraphicsLayer::setNeedsDisplay()
 {
     if (!drawsContent() || !contentsAreVisible() || m_size.isEmpty() || m_needsDisplay.completeLayer)
@@ -702,7 +694,6 @@ void CoordinatedGraphicsLayer::setNeedsDisplay()
 
     notifyFlushRequired();
     FloatRect layerRect { { }, m_size };
-    addDamageRegion(layerRect);
     addRepaintRect(layerRect);
 }
 
@@ -727,7 +718,6 @@ void CoordinatedGraphicsLayer::setNeedsDisplayInRect(const FloatRect& initialRec
     rects.append(rect);
 
     notifyFlushRequired();
-    addDamageRegion(rect);
     addRepaintRect(rect);
 }
 
@@ -1174,10 +1164,17 @@ void CoordinatedGraphicsLayer::updateContentBuffers()
     }
 
     if (!m_needsDisplay.completeLayer) {
-        for (auto& rect : m_needsDisplay.rects)
-            layerState.mainBackingStore->invalidate(enclosingIntRect(rect));
-    } else
+        for (auto& rect : m_needsDisplay.rects) {
+            auto rr = enclosingIntRect(rect);
+            m_nicosia.damagedRects.append(rr);
+            layerState.mainBackingStore->invalidate(rr);
+        }
+    } else {
+        auto rr = enclosingIntRect(FloatRect({}, m_size));
+        m_nicosia.damagedRects.append(rr);
         layerState.mainBackingStore->invalidate({ { }, IntSize { m_size } });
+    }
+    m_nicosia.delta.damagedRectsChanged = true;
 
     m_needsDisplay.completeLayer = false;
     m_needsDisplay.rects.clear();
