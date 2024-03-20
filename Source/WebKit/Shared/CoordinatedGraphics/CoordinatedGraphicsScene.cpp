@@ -481,7 +481,6 @@ void CoordinatedGraphicsScene::recordDamage(FloatRect damagedRect)
 {
     if (damagedRect.isEmpty()) {
         WTFLogAlways("%s: Got empty damage rect :-(", __func__);
-        CRASH();
         return;
     }
 

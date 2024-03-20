@@ -1096,7 +1096,10 @@ void TextureMapperLayer::markDamaged(std::optional<FloatRect> target)
 
     auto newRegion = target ? (*target) : layerRect();
 
-    RELEASE_ASSERT(!newRegion.isEmpty());
+    if (newRegion.isEmpty()) {
+        WTFLogAlways("%s: Got empty damage rect :-(", __func__);
+        return;
+    }
 
     if (Nicosia::bufDamageUnifiedRegion()) {
         if (m_damaged.isEmpty())
