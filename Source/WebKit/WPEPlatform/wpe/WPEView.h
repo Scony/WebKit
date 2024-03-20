@@ -50,6 +50,8 @@ struct _WPEViewClass
 
     gboolean    (* render_buffer)                 (WPEView      *view,
                                                    WPEBuffer    *buffer,
+                                                   WPERectangle *damage_rects,
+                                                   guint         n_damage_rects,
                                                    GError      **error);
     WPEMonitor *(* get_monitor)                   (WPEView      *view);
     gboolean    (* resize)                        (WPEView      *view,
@@ -136,6 +138,8 @@ WPE_API gboolean     wpe_view_maximize                      (WPEView      *view)
 WPE_API gboolean     wpe_view_unmaximize                    (WPEView      *view);
 WPE_API gboolean     wpe_view_render_buffer                 (WPEView      *view,
                                                              WPEBuffer    *buffer,
+                                                             WPERectangle *damage_rects,
+                                                             guint         n_damage_rects,
                                                              GError      **error);
 WPE_API void         wpe_view_buffer_rendered               (WPEView      *view,
                                                              WPEBuffer    *buffer);

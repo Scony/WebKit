@@ -140,7 +140,7 @@ private:
     void resize(const WebCore::IntSize&) override;
     void willRenderFrame() override;
     void clearIfNeeded() override;
-    void didRenderFrame() override;
+    void didRenderFrame(const Vector<WebCore::IntRect>&) override;
     void displayDidRefresh(WebCore::PlatformDisplayID) override;
 
 #if !HAVE(DISPLAY_LINK)

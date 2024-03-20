@@ -300,7 +300,7 @@ void ThreadedCompositor::renderLayerTree()
 
 
     if (m_scene->isActive())
-        m_client.didRenderFrame();
+        m_client.didRenderFrame(m_scene->lastDamagedRects());
 }
 
 void ThreadedCompositor::sceneUpdateFinished()
