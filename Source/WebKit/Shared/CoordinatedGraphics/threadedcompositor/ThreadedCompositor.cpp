@@ -277,7 +277,6 @@ void ThreadedCompositor::renderLayerTree()
     m_scene->applyStateChanges(states);
     m_scene->paintToCurrentGLContext(viewportTransform, FloatRect { FloatPoint { }, viewportSize }, m_flipY);
 
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     if (!m_scene->lastDamagedRects().isEmpty()) {
         RELEASE_LOG(CoordinatedGraphics, "damaged regions:");
         // The damage rect originally has its coordinates origin in the top left corner, as used by CSS, Wayland, etc.
@@ -291,7 +290,6 @@ void ThreadedCompositor::renderLayerTree()
         }
         m_context->swapBuffersWithDamage(regions);
     } else
-#endif // BUFFER_DAMAGE_TRACKING
     {
         m_context->swapBuffers();
     }

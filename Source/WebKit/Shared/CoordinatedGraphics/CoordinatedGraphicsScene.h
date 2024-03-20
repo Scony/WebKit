@@ -54,9 +54,7 @@ public:
 };
 
 class CoordinatedGraphicsScene : public ThreadSafeRefCounted<CoordinatedGraphicsScene>, public WebCore::TextureMapperPlatformLayerProxy::Compositor
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     , public WebCore::TextureMapperLayerDamageVisitor
-#endif
 {
 public:
     explicit CoordinatedGraphicsScene(CoordinatedGraphicsSceneClient*);
@@ -74,11 +72,9 @@ public:
     bool isActive() const { return m_isActive; }
     void setActive(bool active) { m_isActive = active; }
 
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     const Vector<WebCore::IntRect> lastDamagedRects() const { return m_lastDamagedRects; }
 
     void recordDamage(WebCore::FloatRect) override;
-#endif
 
 private:
     void commitSceneState(const RefPtr<Nicosia::Scene>&);

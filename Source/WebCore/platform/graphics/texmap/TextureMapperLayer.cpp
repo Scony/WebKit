@@ -220,7 +220,6 @@ void TextureMapperLayer::paintSelf(TextureMapperPaintOptions& options)
         contentsLayer = &solidColorLayer;
     }
 
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     if (!contentsLayer) {
         // Use the damage information we received from the CoordinatedGraphicsLayer
         if (!m_damaged.isEmpty()) {
@@ -235,10 +234,6 @@ void TextureMapperLayer::paintSelf(TextureMapperPaintOptions& options)
 
     // Layers with content layer are always fully damaged for now...
     recordDamage(layerRect(), transform, options);
-#else
-    if (!contentsLayer)
-        return;
-#endif
 
     if (!m_state.contentsTileSize.isEmpty()) {
         options.textureMapper.setWrapMode(TextureMapper::WrapMode::Repeat);
@@ -847,17 +842,13 @@ void TextureMapperLayer::addChild(TextureMapperLayer* childLayer)
     childLayer->m_parent = this;
     m_children.append(childLayer);
 
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     if (m_visitor)
         childLayer->acceptDamageVisitor(m_visitor);
-#endif
 }
 
 void TextureMapperLayer::removeFromParent()
 {
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     dismissDamageVisitor();
-#endif
 
     if (m_parent) {
         size_t index = m_parent->m_children.find(this);
@@ -872,9 +863,7 @@ void TextureMapperLayer::removeAllChildren()
 {
     auto oldChildren = WTFMove(m_children);
     for (auto* child : oldChildren) {
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
         child->dismissDamageVisitor();
-#endif
         child->m_parent = nullptr;
     }
 }
@@ -1054,10 +1043,8 @@ bool TextureMapperLayer::descendantsOrSelfHaveRunningAnimations() const
 bool TextureMapperLayer::applyAnimationsRecursively(MonotonicTime time)
 {
     bool hasRunningAnimations = syncAnimations(time);
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     if (hasRunningAnimations) // FIXME Too broad?
         markDamaged();
-#endif
     if (m_state.replicaLayer)
         hasRunningAnimations |= m_state.replicaLayer->applyAnimationsRecursively(time);
     if (m_state.backdropLayer)
@@ -1086,7 +1073,6 @@ bool TextureMapperLayer::syncAnimations(MonotonicTime time)
     return applicationResults.hasRunningAnimations;
 }
 
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
 void TextureMapperLayer::acceptDamageVisitor(TextureMapperLayerDamageVisitor* visitor)
 {
     if (visitor == m_visitor)
@@ -1139,6 +1125,5 @@ void TextureMapperLayer::recordDamage(const FloatRect& rect, const Transformatio
         clearDamaged();
     }
 }
-#endif // BUFFER_DAMAGE_TRACKING
 
 }

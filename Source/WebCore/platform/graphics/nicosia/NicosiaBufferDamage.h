@@ -29,8 +29,6 @@
 
 namespace Nicosia {
 
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
 bool bufDamageUnifiedRegion();
-#endif
 
 } // namespace Nicosia

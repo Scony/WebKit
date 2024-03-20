@@ -1063,7 +1063,6 @@ void WindowViewBackend::displayBuffer(struct wpe_fdo_egl_exported_image* image)
     struct wl_callback* callback = wl_surface_frame(m_surface);
     wl_callback_add_listener(callback, &s_frameListener, this);
 
-#if defined(ENABLE_BUFFER_DAMAGE_TRACKING) && ENABLE_BUFFER_DAMAGE_TRACKING
     const int32_t* damageRegions;
     auto damageRegionsCount = wpe_fdo_egl_exported_image_get_damage_regions(image, &damageRegions);
     if (damageRegionsCount && damageRegions) {
@@ -1073,10 +1072,6 @@ void WindowViewBackend::displayBuffer(struct wpe_fdo_egl_exported_image* image)
             const_cast<EGLint*>(damageRegions), damageRegionsCount);
     } else
         eglSwapBuffers(connection.eglDisplay, m_eglSurface);
-#else
-    eglSwapBuffers(connection.eglDisplay, m_eglSurface);
-#endif
-
 }
 
 #if WPE_FDO_CHECK_VERSION(1, 5, 0)

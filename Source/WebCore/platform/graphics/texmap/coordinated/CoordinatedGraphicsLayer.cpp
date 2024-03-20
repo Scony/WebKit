@@ -417,9 +417,7 @@ void CoordinatedGraphicsLayer::setContentsOpaque(bool b)
         m_needsDisplay.rects.clear();
 
         FloatRect layerRect { { }, m_size };
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
         addDamageRegion(layerRect);
-#endif
         addRepaintRect(layerRect);
     }
 
@@ -513,9 +511,7 @@ void CoordinatedGraphicsLayer::setContentsNeedsDisplay()
 
     notifyFlushRequired();
     auto damagedRegion = contentsRect();
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     addDamageRegion(damagedRegion);
-#endif
     addRepaintRect(damagedRegion);
 }
 
@@ -690,13 +686,11 @@ void CoordinatedGraphicsLayer::setReplicatedByLayer(RefPtr<GraphicsLayer>&& laye
     notifyFlushRequired();
 }
 
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
 void CoordinatedGraphicsLayer::addDamageRegion(const FloatRect& region)
 {
     m_nicosia.delta.damagedRectsChanged = true;
     m_nicosia.damagedRects.append(region);
 }
-#endif
 
 void CoordinatedGraphicsLayer::setNeedsDisplay()
 {
@@ -708,9 +702,7 @@ void CoordinatedGraphicsLayer::setNeedsDisplay()
 
     notifyFlushRequired();
     FloatRect layerRect { { }, m_size };
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     addDamageRegion(layerRect);
-#endif
     addRepaintRect(layerRect);
 }
 
@@ -735,9 +727,7 @@ void CoordinatedGraphicsLayer::setNeedsDisplayInRect(const FloatRect& initialRec
     rects.append(rect);
 
     notifyFlushRequired();
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
     addDamageRegion(rect);
-#endif
     addRepaintRect(rect);
 }
 
@@ -1074,14 +1064,12 @@ void CoordinatedGraphicsLayer::flushCompositingStateForThisLayerOnly()
 #endif
                 if (localDelta.eventRegionChanged)
                     state.eventRegion = eventRegion();
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
                 if (localDelta.damagedRectsChanged) {
                     state.damagedRects = m_nicosia.damagedRects;
                     m_nicosia.damagedRects = { };
                 }
                 // TODO we need to update the pending state with the current damage tracking information
                 // TODO what about already existing damage information?
-#endif
             });
         m_nicosia.performLayerSync = !!m_nicosia.delta.value;
         m_nicosia.delta = { };

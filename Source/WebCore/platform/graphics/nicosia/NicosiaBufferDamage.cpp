@@ -34,7 +34,6 @@
 
 namespace Nicosia {
 
-#if ENABLE(BUFFER_DAMAGE_TRACKING)
 static std::once_flag bufDamageUnitedRegionOnce;
 static bool bufDamageUnifiedRegionVar = false;
 static void checkDamageBufUnifiedRegion()
@@ -50,8 +49,6 @@ bool bufDamageUnifiedRegion()
     std::call_once(bufDamageUnitedRegionOnce, checkDamageBufUnifiedRegion);
     return bufDamageUnifiedRegionVar;
 }
-
-#endif
 
 } // namespace Nicosia
 
