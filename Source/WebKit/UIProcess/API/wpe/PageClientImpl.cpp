@@ -46,6 +46,10 @@
 #include <atk/atk.h>
 #endif
 
+#if ENABLE(WPE_PLATFORM)
+#include <wpe/wpe-platform.h>
+#endif
+
 namespace WebKit {
 
 PageClientImpl::PageClientImpl(WKWPE::View& view)
@@ -219,8 +223,15 @@ void PageClientImpl::doneWithTouchEvent(const NativeWebTouchEvent& touchEvent, b
         return;
 #endif
 
-    if (wasEventHandled)
+    if (wasEventHandled) {
+#if ENABLE(WPE_PLATFORM)
+        // If the touch event was handled, we must interrupt any gesture detection sequence ongoing so that gestures
+        // are not detected by engine itself.
+        if (auto* gestureController = wpe_view_get_gesture_controller(m_view.wpeView()))
+            wpe_gesture_controller_cancel(gestureController);
+#endif
         return;
+    }
 
     const struct wpe_input_touch_event_raw* touchPoint = touchEvent.nativeFallbackTouchPoint();
     if (touchPoint->type == wpe_input_touch_event_type_null)

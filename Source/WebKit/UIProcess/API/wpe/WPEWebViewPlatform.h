@@ -75,6 +75,8 @@ private:
     Vector<WebKit::WebPlatformTouchPoint> touchPointsForEvent(WPEEvent*);
 #endif
 
+    void handleGesture(WPEEvent*);
+
     GRefPtr<WPEView> m_wpeView;
     std::unique_ptr<WebKit::AcceleratedBackingStoreDMABuf> m_backingStore;
     uint32_t m_displayID { 0 };
