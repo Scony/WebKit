@@ -1733,7 +1733,7 @@ bool RenderFlexibleBox::canUseFlexItemForPercentageResolution(const RenderBox& f
         if (m_inCrossAxisLayout)
             return true;
 
-        if (&flexItem == view().frameView().layoutContext().subtreeLayoutRoot()) {
+        if (view().frameView().layoutContext().hasSubtreeLayoutRoot(flexItem)) {
             ASSERT(!needsLayout());
             // When the flex item is the root of a subtree layout, flex layout is not running (as we only layout the flex item's subtree).
             return false;
