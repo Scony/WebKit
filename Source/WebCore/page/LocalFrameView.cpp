@@ -507,12 +507,12 @@ void LocalFrameView::didRestoreFromBackForwardCache()
 void LocalFrameView::willDestroyRenderTree()
 {
     detachCustomScrollbars();
-    layoutContext().clearSubtreeLayoutRoot();
+    layoutContext().clearSubtreeLayoutRoots();
 }
 
 void LocalFrameView::didDestroyRenderTree()
 {
-    ASSERT(!layoutContext().subtreeLayoutRoot());
+    ASSERT(!layoutContext().isSubtreeLayout());
     ASSERT(m_widgetsInRenderTree.isEmpty());
 
     ASSERT(!m_embeddedObjectsToUpdate || m_embeddedObjectsToUpdate->isEmpty());
@@ -687,7 +687,7 @@ void LocalFrameView::calculateScrollbarModesForLayout(ScrollbarMode& hMode, Scro
         vMode = ScrollbarMode::AlwaysOff;
     }
     
-    if (layoutContext().subtreeLayoutRoot())
+    if (layoutContext().isSubtreeLayout())
         return;
     
     auto* document = m_frame->document();
@@ -3887,7 +3887,7 @@ void LocalFrameView::autoSizeIfEnabled()
         return;
 
     SetForScope changeInAutoSize(m_inAutoSize, true);
-    if (layoutContext().subtreeLayoutRoot())
+    if (layoutContext().isSubtreeLayout())
         layoutContext().convertSubtreeLayoutToFullLayout();
 
     switch (m_autoSizeMode) {
@@ -5057,7 +5057,7 @@ void LocalFrameView::enableAutoSizeMode(bool enable, const IntSize& viewSize, Au
 
 void LocalFrameView::forceLayout(bool allowSubtreeLayout)
 {
-    if (!allowSubtreeLayout && layoutContext().subtreeLayoutRoot())
+    if (!allowSubtreeLayout && layoutContext().isSubtreeLayout())
         layoutContext().convertSubtreeLayoutToFullLayout();
     layoutContext().layout();
 }
