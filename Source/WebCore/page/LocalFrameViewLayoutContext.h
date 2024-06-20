@@ -98,6 +98,7 @@ public:
     LayoutPhase layoutPhase() const { return m_layoutPhase; }
     bool isLayoutNested() const { return m_layoutNestedState == LayoutNestedState::Nested; }
     bool isLayoutPending() const { return m_layoutTimer.isActive(); }
+    bool isSubtreeLayout() const { return !m_subtreeLayoutRoots.isEmpty(); }
     bool isInLayout() const { return layoutPhase() != LayoutPhase::OutsideLayout; }
     bool isInRenderTreeLayout() const { return layoutPhase() == LayoutPhase::InRenderTreeLayout; }
     bool inPaintableState() const { return layoutPhase() != LayoutPhase::InRenderTreeLayout && layoutPhase() != LayoutPhase::InViewSizeAdjust && (layoutPhase() != LayoutPhase::InPostLayout || inAsynchronousTasks()); }
@@ -114,8 +115,9 @@ public:
     std::optional<TextBoxTrim> textBoxTrim() const { return m_textBoxTrim; }
     void setTextBoxTrim(std::optional<TextBoxTrim> textBoxTrim) { m_textBoxTrim = textBoxTrim; }
 
-    RenderElement* subtreeLayoutRoot() const;
-    void clearSubtreeLayoutRoot() { m_subtreeLayoutRoot.clear(); }
+    bool hasSubtreeLayoutRoot(const RenderElement&) const;
+    void removeSubtreeLayoutRoot(const RenderElement&);
+    void clearSubtreeLayoutRoots();
     void convertSubtreeLayoutToFullLayout();
 
     void reset();
@@ -182,7 +184,8 @@ private:
 
     bool needsLayoutInternal() const;
 
-    void performLayout(bool canDeferUpdateLayerPositions);
+    void performLayouts(bool canDeferUpdateLayerPositions);
+    bool performLayout(bool canDeferUpdateLayerPositions, bool unchecked = false);
     bool canPerformLayout() const;
     bool isLayoutSchedulingEnabled() const { return m_layoutSchedulingIsEnabled; }
 
@@ -193,7 +196,7 @@ private:
     void runOrScheduleAsynchronousTasks(bool canDeferUpdateLayerPositions);
     bool inAsynchronousTasks() const { return m_inAsynchronousTasks; }
 
-    void setSubtreeLayoutRoot(RenderElement&);
+    void addSubtreeLayoutRoot(RenderElement&);
 
 #if ENABLE(TEXT_AUTOSIZING)
     void applyTextSizingIfNeeded(RenderElement& layoutRoot);
@@ -237,7 +240,7 @@ private:
     SingleThreadWeakRef<LocalFrameView> m_frameView;
     Timer m_layoutTimer;
     Timer m_postLayoutTaskTimer;
-    SingleThreadWeakPtr<RenderElement> m_subtreeLayoutRoot;
+    HashSet<RenderElement*> m_subtreeLayoutRoots;
 
     bool m_layoutSchedulingIsEnabled { true };
     bool m_firstLayout { true };
