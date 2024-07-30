@@ -117,6 +117,7 @@ public:
     WEBCORE_EXPORT bool descendantsOrSelfHaveRunningAnimations() const;
 
     WEBCORE_EXPORT void paint(TextureMapper&);
+    void collectDamage(TextureMapper&);
 
     void addChild(TextureMapperLayer*);
 
@@ -161,6 +162,7 @@ private:
     void computeOverlapRegions(ComputeOverlapRegionData&, const TransformationMatrix&, bool includesReplica = true);
 
     void paintRecursive(TextureMapperPaintOptions&);
+    void collectDamageRecursive(TextureMapperPaintOptions&);
     void paintWith3DRenderingContext(TextureMapperPaintOptions&);
     void paintSelfChildrenReplicaFilterAndMask(TextureMapperPaintOptions&);
     void paintUsingOverlapRegions(TextureMapperPaintOptions&);
@@ -169,6 +171,7 @@ private:
     void paintSelfAndChildrenWithIntermediateSurface(TextureMapperPaintOptions&, const IntRect&);
     void paintSelfChildrenFilterAndMask(TextureMapperPaintOptions&);
     void paintSelf(TextureMapperPaintOptions&);
+    void collectDamageSelf(TextureMapperPaintOptions&);
     void paintSelfAndChildren(TextureMapperPaintOptions&);
     void paintSelfAndChildrenWithReplica(TextureMapperPaintOptions&);
     void applyMask(TextureMapperPaintOptions&);

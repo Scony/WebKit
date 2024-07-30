@@ -45,12 +45,14 @@ class CoordinatedGraphicsSceneClient {
 public:
     virtual ~CoordinatedGraphicsSceneClient() { }
     virtual void updateViewport() = 0;
+    virtual void damageRenderTargets(const WebCore::Damage&) = 0;
+    virtual const WebCore::Damage& renderTargetDamage() = 0;
 };
 
 class CoordinatedGraphicsScene : public ThreadSafeRefCounted<CoordinatedGraphicsScene>, public WebCore::TextureMapperPlatformLayerProxy::Compositor
     , public WebCore::TextureMapperLayerDamageVisitor {
 public:
-    CoordinatedGraphicsScene(CoordinatedGraphicsSceneClient*, WebCore::Damage::ShouldPropagate);
+    CoordinatedGraphicsScene(CoordinatedGraphicsSceneClient*, const WebCore::Settings&, WebCore::Damage::ShouldPropagate);
     virtual ~CoordinatedGraphicsScene();
 
     void applyStateChanges(const Vector<RefPtr<Nicosia::Scene>>&);
@@ -89,6 +91,8 @@ private:
     // Below two members are accessed by only the main thread. The painting thread must lock the main thread to access both members.
     CoordinatedGraphicsSceneClient* m_client;
     bool m_isActive { false };
+
+    const WebCore::Settings& m_settings;
 
     WebCore::Damage::ShouldPropagate m_propagateDamage;
     WebCore::Damage m_damage;

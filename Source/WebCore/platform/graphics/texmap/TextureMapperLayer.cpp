@@ -191,6 +191,13 @@ void TextureMapperLayer::paint(TextureMapper& textureMapper)
     paintRecursive(options);
 }
 
+void TextureMapperLayer::collectDamage(TextureMapper& textureMapper)
+{
+    TextureMapperPaintOptions options(textureMapper);
+    options.surface = textureMapper.currentSurface();
+    collectDamageRecursive(options);
+}
+
 void TextureMapperLayer::paintSelf(TextureMapperPaintOptions& options)
 {
     if (!m_state.visible || !m_state.contentsVisible)
@@ -230,30 +237,8 @@ void TextureMapperLayer::paintSelf(TextureMapperPaintOptions& options)
         contentsLayer = &solidColorLayer;
     }
 
-    if (!contentsLayer) {
-        // Use the damage information we received from the CoordinatedGraphicsLayer
-        // Here we ignore the targetRect parameter as it should already have
-        // been covered by the damage tracking in setNeedsDisplay/setNeedsDisplayInRect
-        // calls from CoordinatedGraphicsLayer.
-        if (m_propagateDamage == Damage::ShouldPropagate::Yes) {
-            if (m_damage.isInvalid())
-                recordDamage(layerRect(), transform, options);
-            else {
-                for (const auto& rect : m_damage.rects()) {
-                    ASSERT(!rect.isEmpty());
-                    recordDamage(rect, transform, options);
-                }
-            }
-            clearDamage();
-        }
+    if (!contentsLayer)
         return;
-    }
-
-    if (m_propagateDamage == Damage::ShouldPropagate::Yes) {
-        // Layers with content layer are always fully damaged for now...
-        recordDamage(layerRect(), transform, options);
-        clearDamage();
-    }
 
     if (!m_state.contentsTileSize.isEmpty()) {
         options.textureMapper.setWrapMode(TextureMapper::WrapMode::Repeat);
@@ -295,6 +280,46 @@ void TextureMapperLayer::paintSelf(TextureMapperPaintOptions& options)
 
     if (m_state.showDebugBorders)
         contentsLayer->drawBorder(options.textureMapper, m_state.debugBorderColor, m_state.debugBorderWidth, m_state.contentsRect, transform);
+}
+
+void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options)
+{
+    if (!m_state.visible || !m_state.contentsVisible)
+        return;
+    auto targetRect = layerRect();
+    if (targetRect.isEmpty())
+        return;
+
+    TransformationMatrix transform;
+    transform.translate(options.offset.width(), options.offset.height());
+    transform.multiply(options.transform);
+    transform.multiply(m_layerTransforms.combined);
+
+    TextureMapperPlatformLayer* contentsLayer = m_contentsLayer;
+    if (!contentsLayer) {
+        // Use the damage information we received from the CoordinatedGraphicsLayer
+        // Here we ignore the targetRect parameter as it should already have
+        // been covered by the damage tracking in setNeedsDisplay/setNeedsDisplayInRect
+        // calls from CoordinatedGraphicsLayer.
+        if (m_propagateDamage == Damage::ShouldPropagate::Yes) {
+            if (m_damage.isInvalid())
+                recordDamage(layerRect(), transform, options);
+            else {
+                for (const auto& rect : m_damage.rects()) {
+                    ASSERT(!rect.isEmpty());
+                    recordDamage(rect, transform, options);
+                }
+            }
+            clearDamage();
+        }
+        return;
+    }
+
+    if (m_propagateDamage == Damage::ShouldPropagate::Yes) {
+        // Layers with content layer are always fully damaged for now...
+        recordDamage(layerRect(), transform, options);
+        clearDamage();
+    }
 }
 
 void TextureMapperLayer::sortByZOrder(Vector<TextureMapperLayer* >& array)
@@ -815,6 +840,22 @@ void TextureMapperLayer::paintRecursive(TextureMapperPaintOptions& options)
         paintUsingOverlapRegions(options);
     else
         paintSelfChildrenReplicaFilterAndMask(options);
+}
+
+void TextureMapperLayer::collectDamageRecursive(TextureMapperPaintOptions& options)
+{
+    if (!isVisible())
+        return;
+
+    SetForScope scopedOpacity(options.opacity, options.opacity * m_currentOpacity);
+
+    collectDamageSelf(options);
+
+    if (m_children.isEmpty())
+        return;
+
+    for (auto* child : m_children)
+        child->collectDamageRecursive(options);
 }
 
 void TextureMapperLayer::paintWith3DRenderingContext(TextureMapperPaintOptions& options)

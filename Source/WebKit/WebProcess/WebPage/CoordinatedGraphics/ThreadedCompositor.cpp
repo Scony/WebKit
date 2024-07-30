@@ -122,7 +122,7 @@ ThreadedCompositor::ThreadedCompositor(LayerTreeHost& layerTreeHost, ThreadedDis
 
         const auto propagateDamage = (m_damagePropagation == DamagePropagation::None)
             ? WebCore::Damage::ShouldPropagate::No : WebCore::Damage::ShouldPropagate::Yes;
-        m_scene = adoptRef(new CoordinatedGraphicsScene(this, propagateDamage));
+        m_scene = adoptRef(new CoordinatedGraphicsScene(this, m_layerTreeHost->webPage().corePage()->settings(), propagateDamage));
 
         // GLNativeWindowType depends on the EGL implementation: reinterpret_cast works
         // for pointers (only if they are 64-bit wide and not for other cases), and static_cast for
@@ -250,6 +250,16 @@ void ThreadedCompositor::preferredBufferFormatsDidChange()
 void ThreadedCompositor::updateViewport()
 {
     m_compositingRunLoop->scheduleUpdate();
+}
+
+void ThreadedCompositor::damageRenderTargets(const WebCore::Damage& damage)
+{
+    m_surface->damageRenderTargets(damage);
+}
+
+const WebCore::Damage& ThreadedCompositor::renderTargetDamage()
+{
+    return m_surface->renderTargetDamage();
 }
 
 void ThreadedCompositor::forceRepaint()

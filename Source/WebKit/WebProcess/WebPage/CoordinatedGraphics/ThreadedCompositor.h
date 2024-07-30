@@ -102,6 +102,8 @@ private:
 
     // CoordinatedGraphicsSceneClient
     void updateViewport() override;
+    void damageRenderTargets(const WebCore::Damage&) override;
+    const WebCore::Damage& renderTargetDamage() override;
 
     void renderLayerTree();
     void frameComplete();
