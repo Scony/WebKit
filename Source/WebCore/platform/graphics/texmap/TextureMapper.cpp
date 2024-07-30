@@ -453,12 +453,17 @@ static void prepareRoundedRectClip(TextureMapperShaderProgram& program, const fl
 
 void TextureMapper::drawTexture(const BitmapTexture& texture, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity, AllEdgesExposed allEdgesExposed)
 {
+    drawTexture(texture.id(), texture.colorConvertFlags(), texture.isOpaque(), texture.filterOperation(), targetRect, matrix, opacity, allEdgesExposed);
+}
+
+void TextureMapper::drawTexture(uint32_t textureId, OptionSet<TextureMapperFlags> textureColorConvertFlags, bool textureIsOpaque, RefPtr<const FilterOperation> textureFilterOperation, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity, AllEdgesExposed allEdgesExposed)
+{
     if (clipStack().isCurrentScissorBoxEmpty())
         return;
 
-    SetForScope filterOperation(data().filterOperation, texture.filterOperation());
+    SetForScope filterOperation(data().filterOperation, textureFilterOperation);
 
-    drawTexture(texture.id(), texture.colorConvertFlags() | (texture.isOpaque() ? OptionSet<TextureMapperFlags> { } : TextureMapperFlags::ShouldBlend), targetRect, matrix, opacity, allEdgesExposed);
+    drawTexture(textureId, textureColorConvertFlags | (textureIsOpaque ? OptionSet<TextureMapperFlags> { } : TextureMapperFlags::ShouldBlend), targetRect, matrix, opacity, allEdgesExposed);
 }
 
 void TextureMapper::drawTexture(GLuint texture, OptionSet<TextureMapperFlags> flags, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed allEdgesExposed)
@@ -1265,6 +1270,11 @@ bool TextureMapper::beginRoundedRectClip(const TransformationMatrix& modelViewMa
 
 void TextureMapper::beginClip(const TransformationMatrix& modelViewMatrix, const FloatRoundedRect& targetRect)
 {
+    // WTFLogAlways("TextureMapper::beginClip(): targetRect:(%f,%f,%f,%f)",
+    //              targetRect.rect().x(),
+    //              targetRect.rect().y(),
+    //              targetRect.rect().width(),
+    //              targetRect.rect().height());
     clipStack().push();
     if (beginRoundedRectClip(modelViewMatrix, targetRect))
         return;

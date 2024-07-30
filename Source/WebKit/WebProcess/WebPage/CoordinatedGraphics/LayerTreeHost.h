@@ -135,6 +135,7 @@ private:
     void frameComplete() override;
 
     // ThreadedCompositor::Client
+    const WebCore::Settings& settings() override;
     uint64_t nativeSurfaceHandleForCompositing() override;
     void didCreateGLContext() override;
     void willDestroyGLContext() override;
@@ -144,6 +145,8 @@ private:
     void clearIfNeeded() override;
     void didRenderFrame(uint32_t, const WebCore::Damage&) override;
     void displayDidRefresh(WebCore::PlatformDisplayID) override;
+    void damageRenderTargets(const WebCore::Damage&) override;
+    const WebCore::Damage& renderTargetDamage() override;
 
 #if !HAVE(DISPLAY_LINK)
     // ThreadedDisplayRefreshMonitor::Client

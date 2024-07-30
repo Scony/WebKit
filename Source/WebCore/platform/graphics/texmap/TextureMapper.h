@@ -56,43 +56,44 @@ public:
     WEBCORE_EXPORT static std::unique_ptr<TextureMapper> create();
 
     TextureMapper();
-    WEBCORE_EXPORT ~TextureMapper();
+    WEBCORE_EXPORT virtual ~TextureMapper();
 
     enum class AllEdgesExposed : bool { No, Yes };
     enum class FlipY : bool { No, Yes };
 
-    WEBCORE_EXPORT void drawBorder(const Color&, float borderWidth, const FloatRect&, const TransformationMatrix&);
-    void drawNumber(int number, const Color&, const FloatPoint&, const TransformationMatrix&);
+    WEBCORE_EXPORT virtual void drawBorder(const Color&, float borderWidth, const FloatRect&, const TransformationMatrix&);
+    virtual void drawNumber(int number, const Color&, const FloatPoint&, const TransformationMatrix&);
 
-    WEBCORE_EXPORT void drawTexture(const BitmapTexture&, const FloatRect& target, const TransformationMatrix& modelViewMatrix = TransformationMatrix(), float opacity = 1.0f, AllEdgesExposed = AllEdgesExposed::Yes);
-    void drawTexture(GLuint texture, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed = AllEdgesExposed::Yes);
-    void drawTexturePlanarYUV(const std::array<GLuint, 3>& textures, const std::array<GLfloat, 16>& yuvToRgbMatrix, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, std::optional<GLuint> alphaPlane, AllEdgesExposed = AllEdgesExposed::Yes);
-    void drawTextureSemiPlanarYUV(const std::array<GLuint, 2>& textures, bool uvReversed, const std::array<GLfloat, 16>& yuvToRgbMatrix, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed = AllEdgesExposed::Yes);
-    void drawTexturePackedYUV(GLuint texture, const std::array<GLfloat, 16>& yuvToRgbMatrix, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed = AllEdgesExposed::Yes);
-    void drawTextureExternalOES(GLuint texture, OptionSet<TextureMapperFlags>, const FloatRect&, const TransformationMatrix& modelViewMatrix, float opacity);
-    void drawSolidColor(const FloatRect&, const TransformationMatrix&, const Color&, bool);
-    void clearColor(const Color&);
+    WEBCORE_EXPORT virtual void drawTexture(const BitmapTexture&, const FloatRect& target, const TransformationMatrix& modelViewMatrix = TransformationMatrix(), float opacity = 1.0f, AllEdgesExposed = AllEdgesExposed::Yes);
+    virtual void drawTexture(uint32_t textureId, OptionSet<TextureMapperFlags> textureColorConvertFlags, bool textureIsOpaque, RefPtr<const FilterOperation> textureFilterOperation, const FloatRect& targetRect, const TransformationMatrix&, float opacity, AllEdgesExposed);
+    virtual void drawTexture(GLuint texture, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed = AllEdgesExposed::Yes);
+    virtual void drawTexturePlanarYUV(const std::array<GLuint, 3>& textures, const std::array<GLfloat, 16>& yuvToRgbMatrix, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, std::optional<GLuint> alphaPlane, AllEdgesExposed = AllEdgesExposed::Yes);
+    virtual void drawTextureSemiPlanarYUV(const std::array<GLuint, 2>& textures, bool uvReversed, const std::array<GLfloat, 16>& yuvToRgbMatrix, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed = AllEdgesExposed::Yes);
+    virtual void drawTexturePackedYUV(GLuint texture, const std::array<GLfloat, 16>& yuvToRgbMatrix, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed = AllEdgesExposed::Yes);
+    virtual void drawTextureExternalOES(GLuint texture, OptionSet<TextureMapperFlags>, const FloatRect&, const TransformationMatrix& modelViewMatrix, float opacity);
+    virtual void drawSolidColor(const FloatRect&, const TransformationMatrix&, const Color&, bool);
+    virtual void clearColor(const Color&);
 
     // makes a surface the target for the following drawTexture calls.
-    void bindSurface(BitmapTexture* surface);
-    BitmapTexture* currentSurface();
-    void beginClip(const TransformationMatrix&, const FloatRoundedRect&);
-    WEBCORE_EXPORT void beginPainting(FlipY = FlipY::No, BitmapTexture* = nullptr);
-    WEBCORE_EXPORT void endPainting();
-    void endClip();
-    IntRect clipBounds();
+    virtual void bindSurface(BitmapTexture* surface);
+    virtual BitmapTexture* currentSurface();
+    virtual void beginClip(const TransformationMatrix&, const FloatRoundedRect&);
+    WEBCORE_EXPORT virtual void beginPainting(FlipY = FlipY::No, BitmapTexture* = nullptr);
+    WEBCORE_EXPORT virtual void endPainting();
+    virtual void endClip();
+    virtual IntRect clipBounds();
     IntSize maxTextureSize() const { return IntSize(2000, 2000); }
-    void setDepthRange(double zNear, double zFar);
-    void setMaskMode(bool m) { m_isMaskMode = m; }
-    void setWrapMode(WrapMode m) { m_wrapMode = m; }
-    void setPatternTransform(const TransformationMatrix& p) { m_patternTransform = p; }
+    virtual void setDepthRange(double zNear, double zFar);
+    virtual void setMaskMode(bool m) { m_isMaskMode = m; }
+    virtual void setWrapMode(WrapMode m) { m_wrapMode = m; }
+    virtual void setPatternTransform(const TransformationMatrix& p) { m_patternTransform = p; }
 
-    RefPtr<BitmapTexture> applyFilters(RefPtr<BitmapTexture>&, const FilterOperations&, bool defersLastPass);
+    virtual RefPtr<BitmapTexture> applyFilters(RefPtr<BitmapTexture>&, const FilterOperations&, bool defersLastPass);
 
-    WEBCORE_EXPORT RefPtr<BitmapTexture> acquireTextureFromPool(const IntSize&, OptionSet<BitmapTexture::Flags>);
+    WEBCORE_EXPORT virtual RefPtr<BitmapTexture> acquireTextureFromPool(const IntSize&, OptionSet<BitmapTexture::Flags>);
 
 #if USE(GRAPHICS_LAYER_WC)
-    WEBCORE_EXPORT void releaseUnusedTexturesNow();
+    WEBCORE_EXPORT virtual void releaseUnusedTexturesNow();
 #endif
 
 private:

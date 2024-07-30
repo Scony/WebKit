@@ -110,7 +110,7 @@ ThreadedCompositor::ThreadedCompositor(Client& client, ThreadedDisplayRefreshMon
 
         const auto propagateDamage = (m_damagePropagation == DamagePropagation::None)
             ? WebCore::Damage::ShouldPropagate::No : WebCore::Damage::ShouldPropagate::Yes;
-        m_scene = adoptRef(new CoordinatedGraphicsScene(this, propagateDamage));
+        m_scene = adoptRef(new CoordinatedGraphicsScene(this, m_client.settings(), propagateDamage, m_damagePropagation == DamagePropagation::Unified));
         m_nativeSurfaceHandle = m_client.nativeSurfaceHandleForCompositing();
 
         createGLContext();
@@ -216,6 +216,16 @@ void ThreadedCompositor::updateViewport()
     m_compositingRunLoop->scheduleUpdate();
 }
 
+void ThreadedCompositor::damageRenderTargets(const WebCore::Damage& damage)
+{
+    m_client.damageRenderTargets(damage);
+}
+
+const WebCore::Damage& ThreadedCompositor::renderTargetDamage()
+{
+    return m_client.renderTargetDamage();
+}
+
 void ThreadedCompositor::forceRepaint()
 {
     // FIXME: Implement this once it's possible to do these forced updates
@@ -286,7 +296,7 @@ void ThreadedCompositor::renderLayerTree()
     m_client.clearIfNeeded();
 
     m_scene->applyStateChanges(states);
-    m_scene->paintToCurrentGLContext(viewportTransform, FloatRect { FloatPoint { }, viewportSize }, m_flipY);
+    m_scene->paintToCurrentGLContext(viewportTransform, IntRect { IntPoint { }, viewportSize }, m_flipY);
 
     WebCore::Damage boundsDamage;
     const auto& frameDamage = ([this, &boundsDamage]() -> const WebCore::Damage& {

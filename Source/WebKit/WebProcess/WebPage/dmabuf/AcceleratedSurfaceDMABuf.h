@@ -77,6 +77,9 @@ private:
     void willRenderFrame() override;
     void didRenderFrame(WebCore::Region&&) override;
 
+    void damageRenderTargets(const WebCore::Damage&) override;
+    const WebCore::Damage& renderTargetDamage() override;
+
     void didCreateCompositingRunLoop(WTF::RunLoop&) override;
     void willDestroyCompositingRunLoop() override;
 
@@ -102,6 +105,9 @@ private:
         virtual ~RenderTarget();
 
         uint64_t id() const { return m_id; }
+        const WebCore::Damage& damage() { return m_damage; }
+        void addDamage(const WebCore::Damage&);
+        void resetDamage() { m_damage = WebCore::Damage { }; }
 
         virtual void willRenderFrame() const;
         virtual void didRenderFrame() { }
@@ -119,6 +125,7 @@ private:
         uint64_t m_surfaceID { 0 };
         unsigned m_depthStencilBuffer { 0 };
         UnixFileDescriptor m_releaseFenceFD;
+        WebCore::Damage m_damage { WebCore::Damage::invalid() };
     };
 
     class RenderTargetColorBuffer : public RenderTarget {
@@ -223,6 +230,8 @@ private:
         void releaseTarget(uint64_t, UnixFileDescriptor&& releaseFence);
         void reset();
         void releaseUnusedBuffers();
+
+        void damageRenderTargets(const WebCore::Damage&);
 
         unsigned size() const { return m_freeTargets.size() + m_lockedTargets.size(); }
 

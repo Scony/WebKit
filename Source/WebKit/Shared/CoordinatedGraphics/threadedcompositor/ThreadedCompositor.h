@@ -59,6 +59,8 @@ public:
 
     class Client {
     public:
+        virtual const WebCore::Settings& settings() = 0;
+
         virtual uint64_t nativeSurfaceHandleForCompositing() = 0;
         virtual void didCreateGLContext() = 0;
         virtual void willDestroyGLContext() = 0;
@@ -69,6 +71,9 @@ public:
         virtual void clearIfNeeded() = 0;
         virtual void didRenderFrame(uint32_t, const WebCore::Damage&) = 0;
         virtual void displayDidRefresh(WebCore::PlatformDisplayID) = 0;
+
+        virtual void damageRenderTargets(const WebCore::Damage&);
+        virtual const WebCore::Damage& renderTargetDamage() = 0;
     };
 
 #if HAVE(DISPLAY_LINK)
@@ -109,6 +114,8 @@ private:
 
     // CoordinatedGraphicsSceneClient
     void updateViewport() override;
+    void damageRenderTargets(const WebCore::Damage&) override;
+    const WebCore::Damage& renderTargetDamage() override;
 
     void renderLayerTree();
     void sceneUpdateFinished();

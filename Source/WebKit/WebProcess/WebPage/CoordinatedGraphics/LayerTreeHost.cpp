@@ -383,6 +383,11 @@ void LayerTreeHost::frameComplete()
     m_compositor->frameComplete();
 }
 
+const WebCore::Settings& LayerTreeHost::settings()
+{
+    return m_webPage.corePage()->settings();
+}
+
 uint64_t LayerTreeHost::nativeSurfaceHandleForCompositing()
 {
     m_surface->initialize();
@@ -425,6 +430,7 @@ void LayerTreeHost::clearIfNeeded()
 
 void LayerTreeHost::didRenderFrame(uint32_t compositionResponseID, const WebCore::Damage& damage)
 {
+    WTFLogAlways("LayerTreeHost::didRenderFrame(): damage - isEmpty():%d, isInvalid():%d, rects#:%lu, bounds:(%d,%d,%d,%d)", damage.isEmpty(), damage.isInvalid(), damage.rects().size(), damage.bounds().x(), damage.bounds().y(), damage.bounds().width(), damage.bounds().height());
     auto damageRegion = [&]() -> WebCore::Region {
         if (m_scrolledSinceLastFrame || damage.isInvalid())
             return { };
@@ -465,6 +471,16 @@ void LayerTreeHost::didRenderFrameTimerFired()
 void LayerTreeHost::displayDidRefresh(PlatformDisplayID displayID)
 {
     WebProcess::singleton().eventDispatcher().notifyScrollingTreesDisplayDidRefresh(displayID);
+}
+
+void LayerTreeHost::damageRenderTargets(const WebCore::Damage& damage)
+{
+    m_surface->damageRenderTargets(damage);
+}
+
+const WebCore::Damage& LayerTreeHost::renderTargetDamage()
+{
+    return m_surface->renderTargetDamage();
 }
 
 #if !HAVE(DISPLAY_LINK)

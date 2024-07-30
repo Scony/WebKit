@@ -25,6 +25,7 @@
 #if USE(COORDINATED_GRAPHICS)
 
 #include <WebCore/CoordinatedBackingStore.h>
+#include <WebCore/DeferredTextureMapper.h>
 #include <WebCore/NicosiaBackingStore.h>
 #include <WebCore/NicosiaBuffer.h>
 #include <WebCore/NicosiaCompositionLayer.h>
@@ -36,9 +37,11 @@
 namespace WebKit {
 using namespace WebCore;
 
-CoordinatedGraphicsScene::CoordinatedGraphicsScene(CoordinatedGraphicsSceneClient* client, Damage::ShouldPropagate propagateDamage)
-    : m_client(client)
+CoordinatedGraphicsScene::CoordinatedGraphicsScene(CoordinatedGraphicsSceneClient* client, const WebCore::Settings& settings, Damage::ShouldPropagate propagateDamage, bool unifyDamage)
+    : m_settings(settings)
+    , m_client(client)
     , m_propagateDamage(propagateDamage)
+    , m_unifyDamage(unifyDamage)
 {
 }
 
@@ -57,6 +60,7 @@ void CoordinatedGraphicsScene::applyStateChanges(const Vector<RefPtr<Nicosia::Sc
 
 void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatrix& matrix, const FloatRect& clipRect, bool flipY)
 {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     updateSceneState();
 
     m_damage = WebCore::Damage();
@@ -69,16 +73,65 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
         currentRootLayer->setTransform(matrix);
 
     bool sceneHasRunningAnimations = currentRootLayer->applyAnimationsRecursively(MonotonicTime::now());
-    m_textureMapper->beginPainting(flipY ? TextureMapper::FlipY::Yes : TextureMapper::FlipY::No);
-    m_textureMapper->beginClip(TransformationMatrix(), FloatRoundedRect(clipRect));
 
-    currentRootLayer->paint(*m_textureMapper);
-    m_fpsCounter.updateFPSAndDisplay(*m_textureMapper, clipRect.location(), matrix);
-    m_textureMapper->endClip();
-    m_textureMapper->endPainting();
+    // Normally the damage is collected & combined during painting (TextureMapperLayer tree traversal).
+    // Therefore, we're using DeferredTextureMapper to perform traversal (and hence collect damage)
+    // but to defer painting so that we can leverage collected damage during painting without a need
+    // for extra traversals.
+    WTFLogAlways("CoordinatedGraphicsScene::paintToCurrentGLContext()");
+    std::unique_ptr<DeferredTextureMapper> deferredTextureMapper;
+    if (m_settings.useDamagingInformationInCompositing())
+        deferredTextureMapper = std::make_unique<DeferredTextureMapper>(*m_textureMapper.get());
+
+    TextureMapper* textureMapper = deferredTextureMapper ? deferredTextureMapper.get() : m_textureMapper.get();
+    textureMapper->beginPainting(flipY ? TextureMapper::FlipY::Yes : TextureMapper::FlipY::No);
+    textureMapper->beginClip(TransformationMatrix(), FloatRoundedRect(clipRect));
+    currentRootLayer->paint(*textureMapper);
+    m_fpsCounter.updateFPSAndDisplay(*textureMapper, clipRect.location(), matrix);
+    textureMapper->endClip();
+    textureMapper->endPainting();
+
+    if (m_settings.useDamagingInformationInCompositing()) {
+        WebCore::Damage boundsDamage;
+        const auto& frameDamage = ([this, &boundsDamage]() -> const WebCore::Damage& {
+            const auto& damage = lastDamage();
+            if (m_propagateDamage != Damage::ShouldPropagate::No && !damage.isInvalid()) {
+                if (m_unifyDamage) {
+                    boundsDamage.add(damage.bounds());
+                    return boundsDamage;
+                }
+                return damage;
+            }
+            return WebCore::Damage::invalid();
+        })();
+        WTFLogAlways("CoordinatedGraphicsScene::paintToCurrentGLContext(): frameDamage - isEmpty():%d, isInvalid():%d, rects#:%lu, bounds:(%d,%d,%d,%d)", frameDamage.isEmpty(), frameDamage.isInvalid(), frameDamage.rects().size(), frameDamage.bounds().x(), frameDamage.bounds().y(), frameDamage.bounds().width(), frameDamage.bounds().height());
+
+        Damage::Rects clipRects = { (IntRect)clipRect };
+        if (m_client) {
+            // FIXME: Decide what to do with valid-yet-empty damage (bounds:0,0,0,0).
+            m_client->damageRenderTargets(frameDamage);
+
+            const Damage& damageSinceLastRenderTargetUse = m_client->renderTargetDamage();
+            WTFLogAlways("CoordinatedGraphicsScene::paintToCurrentGLContext() damageSinceLastRenderTargetUse - isEmpty():%d, isInvalid():%d/%d, rects#:%lu, bounds:(%d,%d,%d,%d)", damageSinceLastRenderTargetUse.isEmpty(), damageSinceLastRenderTargetUse.isInvalid(), (bool)damageSinceLastRenderTargetUse.isInvalid(), damageSinceLastRenderTargetUse.rects().size(), damageSinceLastRenderTargetUse.bounds().x(), damageSinceLastRenderTargetUse.bounds().y(), damageSinceLastRenderTargetUse.bounds().width(), damageSinceLastRenderTargetUse.bounds().height());
+            if (!damageSinceLastRenderTargetUse.isInvalid())
+                clipRects = damageSinceLastRenderTargetUse.rects();
+        }
+
+        // In case of multi-rect damage, we need to perform one tree traversal (painting) per damage rect as
+        // we want to avoid using stencil buffer that is costly to create GPU-wise.
+        // Plase note that number of damage rects is effectively limited by Damage::mergeIfNeeded().
+        for (const auto& actualClipRect : clipRects) {
+            deferredTextureMapper->replaceNthDeferredOperation(1, [actualClipRect](TextureMapper* textureMapper) {
+                textureMapper->beginClip(TransformationMatrix(), FloatRoundedRect(actualClipRect));
+            });
+            deferredTextureMapper->executeDeferredOperations();
+        }
+    }
 
     if (sceneHasRunningAnimations)
         updateViewport();
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    WTFLogAlways("CoordinatedGraphicsScene::paintToCurrentGLContext() took: %ld [us]", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
 }
 
 void CoordinatedGraphicsScene::updateViewport()

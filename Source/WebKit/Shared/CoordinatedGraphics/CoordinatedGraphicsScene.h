@@ -51,12 +51,14 @@ class CoordinatedGraphicsSceneClient {
 public:
     virtual ~CoordinatedGraphicsSceneClient() { }
     virtual void updateViewport() = 0;
+    virtual void damageRenderTargets(const WebCore::Damage&);
+    virtual const WebCore::Damage& renderTargetDamage() = 0;
 };
 
 class CoordinatedGraphicsScene : public ThreadSafeRefCounted<CoordinatedGraphicsScene>, public WebCore::TextureMapperPlatformLayerProxy::Compositor
     , public WebCore::TextureMapperLayerDamageVisitor {
 public:
-    CoordinatedGraphicsScene(CoordinatedGraphicsSceneClient*, WebCore::Damage::ShouldPropagate);
+    CoordinatedGraphicsScene(CoordinatedGraphicsSceneClient*, const WebCore::Settings&, WebCore::Damage::ShouldPropagate, bool unifyDamage);
     virtual ~CoordinatedGraphicsScene();
 
     void applyStateChanges(const Vector<RefPtr<Nicosia::Scene>>&);
@@ -85,6 +87,8 @@ private:
 
     void onNewBufferAvailable() override;
 
+    const WebCore::Settings& m_settings;
+
     struct {
         RefPtr<Nicosia::Scene> scene;
         Nicosia::Scene::State state;
@@ -98,6 +102,7 @@ private:
     bool m_isActive { false };
 
     WebCore::Damage::ShouldPropagate m_propagateDamage;
+    bool m_unifyDamage;
     WebCore::Damage m_damage;
 
     std::unique_ptr<WebCore::TextureMapperLayer> m_rootLayer;

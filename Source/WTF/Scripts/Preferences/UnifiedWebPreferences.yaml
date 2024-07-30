@@ -7216,6 +7216,21 @@ UseCGDisplayListsForDOMRendering:
       default: true
   sharedPreferenceForWebProcess: true
 
+UseDamagingInformationInCompositing:
+   type: bool
+   status: unstable
+   category: dom
+   humanReadableName: "Use Damaging Information in Compositing"
+   humanReadableDescription: "Use Damaging Information in Compositing"
+   condition: USE(COORDINATED_GRAPHICS)
+   defaultValue:
+     WebCore:
+       default: false
+     WebKitLegacy:
+       default: false
+     WebKit:
+       default: false
+
 UseGPUProcessForCanvasRenderingEnabled:
   type: bool
   status: stable
