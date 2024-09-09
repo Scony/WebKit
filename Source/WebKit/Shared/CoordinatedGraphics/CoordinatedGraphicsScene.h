@@ -27,6 +27,7 @@
 #include <WebCore/NicosiaPlatformLayer.h>
 #include <WebCore/NicosiaScene.h>
 #include <WebCore/TextureMapper.h>
+#include <WebCore/TextureMapperDamageVisualizer.h>
 #include <WebCore/TextureMapperFPSCounter.h>
 #include <WebCore/TextureMapperLayer.h>
 #include <WebCore/TextureMapperPlatformLayerProxy.h>
@@ -105,6 +106,7 @@ private:
     Nicosia::PlatformLayer::LayerID m_rootLayerID { 0 };
 
     WebCore::TextureMapperFPSCounter m_fpsCounter;
+    WebCore::TextureMapperDamageVisualizer m_damageVisualizer;
 };
 
 } // namespace WebKit

@@ -77,6 +77,14 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
     m_textureMapper->endClip();
     m_textureMapper->endPainting();
 
+    if (m_damageVisualizer.isActive()) {
+        m_textureMapper->beginPainting(flipY ? TextureMapper::FlipY::Yes : TextureMapper::FlipY::No);
+        m_textureMapper->beginClip(TransformationMatrix(), FloatRoundedRect(clipRect));
+        m_damageVisualizer.updateDamageAndDisplay(*m_textureMapper, frameDamage);
+        m_textureMapper->endClip();
+        m_textureMapper->endPainting();
+    }
+
     if (sceneHasRunningAnimations)
         updateViewport();
 }
