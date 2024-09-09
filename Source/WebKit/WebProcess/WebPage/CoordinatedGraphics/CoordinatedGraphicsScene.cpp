@@ -57,8 +57,8 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
     std::optional<FloatRoundedRect> rectContainingRegionThatActuallyChanged;
 #if ENABLE(DAMAGE_TRACKING)
     currentRootLayer.prepareForPainting(*m_textureMapper);
+    Damage frameDamage;
     if (m_client && m_damagePropagation != Damage::Propagation::None) {
-        Damage frameDamage;
         WTFBeginSignpost(this, CollectDamage);
         currentRootLayer.collectDamage(*m_textureMapper, frameDamage);
         WTFEndSignpost(this, CollectDamage);
@@ -70,7 +70,7 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
         }
 
         const auto& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(!frameDamage.isInvalid() && !frameDamage.isEmpty() ? frameDamage : Damage::invalid());
-        if (!damageSinceLastSurfaceUse.isInvalid() && !FloatRect(damageSinceLastSurfaceUse.bounds()).contains(clipRect))
+        if (!m_damageVisualizer.isActive() && !damageSinceLastSurfaceUse.isInvalid() && !FloatRect(damageSinceLastSurfaceUse.bounds()).contains(clipRect))
             rectContainingRegionThatActuallyChanged = FloatRoundedRect(damageSinceLastSurfaceUse.bounds());
     }
 #endif
@@ -86,6 +86,10 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
         m_textureMapper->endClip();
 
     m_fpsCounter.updateFPSAndDisplay(*m_textureMapper, clipRect.location(), matrix);
+#if ENABLE(DAMAGE_TRACKING)
+    if (m_damageVisualizer.isActive())
+        m_damageVisualizer.updateDamageAndDisplay(*m_textureMapper, frameDamage);
+#endif
 
     m_textureMapper->endClip();
     m_textureMapper->endPainting();

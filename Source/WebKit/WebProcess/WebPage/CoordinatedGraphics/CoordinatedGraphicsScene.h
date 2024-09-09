@@ -23,6 +23,9 @@
 #if USE(COORDINATED_GRAPHICS)
 #include <WebCore/Damage.h>
 #include <WebCore/TextureMapper.h>
+#if ENABLE(DAMAGE_TRACKING)
+#include <WebCore/TextureMapperDamageVisualizer.h>
+#endif
 #include <WebCore/TextureMapperFPSCounter.h>
 #include <WebCore/TextureMapperLayer.h>
 #include <wtf/Function.h>
@@ -76,6 +79,7 @@ private:
     WebCore::TextureMapperFPSCounter m_fpsCounter;
 #if ENABLE(DAMAGE_TRACKING)
     WebCore::Damage::Propagation m_damagePropagation { WebCore::Damage::Propagation::None };
+    WebCore::TextureMapperDamageVisualizer m_damageVisualizer;
 #endif
 };
 
