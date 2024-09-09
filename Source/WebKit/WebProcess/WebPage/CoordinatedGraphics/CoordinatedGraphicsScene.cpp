@@ -29,6 +29,7 @@
 #include <WebCore/NicosiaCompositionLayer.h>
 #include <WebCore/NicosiaScene.h>
 #include <WebCore/TextureMapperLayer.h>
+#include <wtf/text/StringToIntegerConversion.h>
 #include <wtf/Atomics.h>
 #include <wtf/SystemTracing.h>
 
@@ -69,6 +70,7 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
 
     bool sceneHasRunningAnimations = currentRootLayer->applyAnimationsRecursively(MonotonicTime::now());
 
+    const WebCore::Damage* actualDamage = nullptr;
     FloatRoundedRect actualClipRect(clipRect);
     if (m_propagateDamage != Damage::ShouldPropagate::No) {
         WTFBeginSignpost(this, CollectDamage);
@@ -87,9 +89,21 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
             }
             return WebCore::Damage::invalid();
         })();
-        const Damage& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(frameDamage);
-        if (!damageSinceLastSurfaceUse.isInvalid())
-            actualClipRect = static_cast<FloatRoundedRect>(damageSinceLastSurfaceUse.bounds());
+        actualDamage = &frameDamage;
+        static bool useDamageInComposition = true;
+        static std::once_flag flag;
+        std::call_once(flag, []() {
+            if (const auto* showDmageEnvvar = getenv("WEBKIT_SHOW_DAMAGE")) {
+                const auto value = parseInteger<unsigned>(StringView::fromLatin1(showDmageEnvvar));
+                if (value && *value > 0)
+                    useDamageInComposition = false;
+            }
+        });
+        if (useDamageInComposition) {
+            const Damage& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(frameDamage);
+            if (!damageSinceLastSurfaceUse.isInvalid())
+                actualClipRect = static_cast<FloatRoundedRect>(damageSinceLastSurfaceUse.bounds());
+        }
     }
 
     WTFBeginSignpost(this, PaintTextureMapperLayerTree);
@@ -106,6 +120,14 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
         m_textureMapper->beginPainting(flipY ? TextureMapper::FlipY::Yes : TextureMapper::FlipY::No);
         m_textureMapper->beginClip(TransformationMatrix(), FloatRoundedRect(clipRect));
         m_fpsCounter.updateFPSAndDisplay(*m_textureMapper, clipRect.location(), matrix);
+        m_textureMapper->endClip();
+        m_textureMapper->endPainting();
+    }
+
+    if (m_damageVisualizer.isActive() && actualDamage) {
+        m_textureMapper->beginPainting(flipY ? TextureMapper::FlipY::Yes : TextureMapper::FlipY::No);
+        m_textureMapper->beginClip(TransformationMatrix(), FloatRoundedRect(clipRect));
+        m_damageVisualizer.updateDamageAndDisplay(*m_textureMapper, *actualDamage);
         m_textureMapper->endClip();
         m_textureMapper->endPainting();
     }

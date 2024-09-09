@@ -12,6 +12,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/texmap/TextureMapper.cpp
     platform/graphics/texmap/TextureMapperAnimation.cpp
     platform/graphics/texmap/TextureMapperBackingStore.cpp
+    platform/graphics/texmap/TextureMapperDamageVisualizer.cpp
     platform/graphics/texmap/TextureMapperFPSCounter.cpp
     platform/graphics/texmap/TextureMapperGCGLPlatformLayer.cpp
     platform/graphics/texmap/TextureMapperLayer.cpp
@@ -33,6 +34,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/texmap/TextureMapperAnimation.h
     platform/graphics/texmap/TextureMapperBackingStore.h
     platform/graphics/texmap/TextureMapperFlags.h
+    platform/graphics/texmap/TextureMapperDamageVisualizer.h
     platform/graphics/texmap/TextureMapperFPSCounter.h
     platform/graphics/texmap/TextureMapperGLHeaders.h
     platform/graphics/texmap/TextureMapperLayer.h
