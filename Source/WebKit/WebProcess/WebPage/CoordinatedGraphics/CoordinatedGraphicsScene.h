@@ -25,6 +25,9 @@
 #include <WebCore/NicosiaPlatformLayer.h>
 #include <WebCore/NicosiaScene.h>
 #include <WebCore/TextureMapper.h>
+#if ENABLE(DAMAGE_TRACKING)
+#include <WebCore/TextureMapperDamageVisualizer.h>
+#endif
 #include <WebCore/TextureMapperFPSCounter.h>
 #include <WebCore/TextureMapperLayer.h>
 #include <WebCore/TextureMapperPlatformLayerProxy.h>
@@ -97,6 +100,7 @@ private:
 
 #if ENABLE(DAMAGE_TRACKING)
     WebCore::Damage::Propagation m_damagePropagation { WebCore::Damage::Propagation::None };
+    WebCore::TextureMapperDamageVisualizer m_damageVisualizer;
 #endif
 
     std::unique_ptr<WebCore::TextureMapperLayer> m_rootLayer;

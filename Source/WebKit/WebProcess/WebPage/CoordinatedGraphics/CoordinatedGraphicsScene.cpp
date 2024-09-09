@@ -30,6 +30,7 @@
 #include <WebCore/NicosiaCompositionLayer.h>
 #include <WebCore/NicosiaScene.h>
 #include <WebCore/TextureMapperLayer.h>
+#include <wtf/text/StringToIntegerConversion.h>
 #include <wtf/Atomics.h>
 #include <wtf/SystemTracing.h>
 
@@ -70,8 +71,8 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
     bool didChangeClipRect = false;
     FloatRoundedRect actualClipRect(clipRect);
 #if ENABLE(DAMAGE_TRACKING)
+    Damage frameDamage;
     if (m_client && m_damagePropagation != Damage::Propagation::None) {
-        Damage frameDamage;
         if (sceneHasRunningAnimations) {
             // When running animations for now we need to damage the whole frame.
             frameDamage.add(clipRect);
@@ -88,10 +89,12 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
             }
         }
 
-        const auto& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(frameDamage);
-        if (!damageSinceLastSurfaceUse.isInvalid()) {
-            actualClipRect = static_cast<FloatRoundedRect>(damageSinceLastSurfaceUse.bounds());
-            didChangeClipRect = true;
+        if (!m_damageVisualizer.isActive()) {
+            const auto& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(frameDamage);
+            if (!damageSinceLastSurfaceUse.isInvalid()) {
+                actualClipRect = static_cast<FloatRoundedRect>(damageSinceLastSurfaceUse.bounds());
+                didChangeClipRect = true;
+            }
         }
     }
 #endif
@@ -113,6 +116,16 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
         m_textureMapper->endClip();
         m_textureMapper->endPainting();
     }
+
+#if ENABLE(DAMAGE_TRACKING)
+    if (m_damageVisualizer.isActive()) {
+        m_textureMapper->beginPainting(flipY ? TextureMapper::FlipY::Yes : TextureMapper::FlipY::No);
+        m_textureMapper->beginClip(TransformationMatrix(), FloatRoundedRect(clipRect));
+        m_damageVisualizer.updateDamageAndDisplay(*m_textureMapper, frameDamage);
+        m_textureMapper->endClip();
+        m_textureMapper->endPainting();
+    }
+#endif
 
     if (sceneHasRunningAnimations)
         updateViewport();
