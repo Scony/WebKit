@@ -1,12 +1,12 @@
 
-FAIL Property position-area value 'none' assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area value 'span-all' assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area value 'x-start' assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area value 'center' assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area value 'span-all span-all' assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area value 'center center' assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area value 'top center' assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area value 'span-bottom span-all' assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area has initial value none assert_true: position-area doesn't seem to be supported in the computed style expected true got false
-FAIL Property position-area does not inherit assert_true: expected true got false
+PASS Property position-area value 'none'
+FAIL Property position-area value 'span-all' assert_equals: expected "span-all" but got "none"
+FAIL Property position-area value 'x-start' assert_equals: expected "x-start" but got "none"
+FAIL Property position-area value 'center' assert_equals: expected "center" but got "none"
+FAIL Property position-area value 'span-all span-all' assert_equals: expected "span-all" but got "none"
+FAIL Property position-area value 'center center' assert_equals: expected "center" but got "none"
+FAIL Property position-area value 'top center' assert_equals: expected "center top" but got "none"
+FAIL Property position-area value 'span-bottom span-all' assert_equals: expected "span-bottom" but got "none"
+PASS Property position-area has initial value none
+FAIL Property position-area does not inherit assert_equals: expected "span-all" but got "none"
 

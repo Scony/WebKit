@@ -33,6 +33,7 @@
 #include "NinePieceImage.h"
 #include "OffsetRotation.h"
 #include "PathOperation.h"
+#include "PositionArea.h"
 #include "RotateTransformOperation.h"
 #include "ScaleTransformOperation.h"
 #include "ScopedName.h"
@@ -206,6 +207,7 @@ public:
 
     Vector<AtomString> anchorNames;
     AtomString positionAnchor;
+    std::optional<PositionArea> positionArea;
 
     TextEdge textBoxEdge;
 
