@@ -2062,6 +2062,9 @@ GridAxisPosition RenderGrid::columnAxisPositionForGridItem(const RenderBox& grid
     case ItemPosition::Auto:
     case ItemPosition::Normal:
         break;
+    case ItemPosition::AnchorCenter:
+        // TODO: Implement.
+        break;
     }
 
     ASSERT_NOT_REACHED();
@@ -2129,6 +2132,9 @@ GridAxisPosition RenderGrid::rowAxisPositionForGridItem(const RenderBox& gridIte
     case ItemPosition::Legacy:
     case ItemPosition::Auto:
     case ItemPosition::Normal:
+        break;
+    case ItemPosition::AnchorCenter:
+        // TODO: Implement.
         break;
     }
 

@@ -1897,6 +1897,8 @@ static LayoutUnit alignmentOffset(LayoutUnit availableFreeSpace, ItemPosition po
     case ItemPosition::Baseline:
     case ItemPosition::LastBaseline: 
         return maxAscent.value_or(0_lu) - ascent.value_or(0_lu);
+    case ItemPosition::AnchorCenter:
+        return 0; // TODO: Implement.
     }
     return 0;
 }
