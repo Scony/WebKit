@@ -7285,7 +7285,10 @@
                 "end",
                 "self-start",
                 "self-end",
-                "anchor-center"
+                {
+                    "value": "anchor-center",
+                    "settings-flag": "cssAnchorPositioningEnabled"
+                }
             ],
             "codegen-properties": {
                 "aliases": [
@@ -7321,7 +7324,10 @@
                 "end",
                 "self-start",
                 "self-end",
-                "anchor-center"
+                {
+                    "value": "anchor-center",
+                    "settings-flag": "cssAnchorPositioningEnabled"
+                }
             ],
             "codegen-properties": {
                 "aliases": [
