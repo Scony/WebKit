@@ -95,6 +95,7 @@
 #include "ShadowRoot.h"
 #include "StylePendingResources.h"
 #include "StyleResolver.h"
+#include "StyleScope.h"
 #include "Styleable.h"
 #include "TextAutoSizing.h"
 #include "ViewTransition.h"
@@ -1605,6 +1606,28 @@ bool RenderElement::isVisibleInViewport() const
     Ref frameView = view().frameView();
     auto visibleRect = frameView->windowToContents(frameView->windowClipRect());
     return isVisibleInDocumentRect(visibleRect);
+}
+
+Element* RenderElement::defaultAnchor() const
+{
+    if (!element())
+        return nullptr;
+    Style::AnchorPositionedStates& anchorPositionedStates = document().styleScope().anchorPositionedStates();
+    auto anchoringStateLookupResult = anchorPositionedStates.find(*element());
+    if (anchoringStateLookupResult == anchorPositionedStates.end() || !anchoringStateLookupResult->value)
+        return nullptr;
+    const Style::AnchorPositionedState& anchoringState = *anchoringStateLookupResult->value;
+    auto defaultAnchorLookupResult = anchoringState.anchorElements.find(style().positionAnchor());
+    if (defaultAnchorLookupResult == anchoringState.anchorElements.end())
+        return nullptr;
+    return &defaultAnchorLookupResult->value.get();
+}
+
+RenderElement* RenderElement::defaultAnchorRenderer() const
+{
+    if (auto* aDefaultAnchor = defaultAnchor())
+        return aDefaultAnchor->renderer();
+    return nullptr;
 }
 
 VisibleInViewportState RenderElement::imageFrameAvailable(CachedImage& image, ImageAnimatingState animatingState, const IntRect* changeRect)

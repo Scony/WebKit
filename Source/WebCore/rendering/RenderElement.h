@@ -353,6 +353,9 @@ protected:
     bool shouldApplyLayoutOrPaintContainment(bool) const;
     inline bool shouldApplySizeOrStyleContainment(bool) const;
 
+    Element* defaultAnchor() const;
+    RenderElement* defaultAnchorRenderer() const;
+
 private:
     RenderElement(Type, ContainerNode&, RenderStyle&&, OptionSet<TypeFlag>, TypeSpecificFlags);
     void node() const = delete;
