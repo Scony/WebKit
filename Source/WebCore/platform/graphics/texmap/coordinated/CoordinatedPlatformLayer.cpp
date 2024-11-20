@@ -818,7 +818,7 @@ void CoordinatedPlatformLayer::updateContents(bool affectedByTransformAnimation)
             }
 #if ENABLE(DAMAGE_TRACKING)
             if (localDelta.damageChanged)
-                state.damage = WTFMove(m_damage);
+                state.damage = std::exchange(m_damage, { });
 #endif
         });
         hadPendingChanges = true;

@@ -88,7 +88,7 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
             }
         }
 
-        const auto& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(frameDamage);
+        const auto& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(!frameDamage.isInvalid() && !frameDamage.isEmpty() ? frameDamage : Damage::invalid());
         if (!damageSinceLastSurfaceUse.isInvalid()) {
             actualClipRect = static_cast<FloatRoundedRect>(damageSinceLastSurfaceUse.bounds());
             didChangeClipRect = true;

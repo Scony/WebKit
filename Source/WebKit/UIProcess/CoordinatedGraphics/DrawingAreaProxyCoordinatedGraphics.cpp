@@ -177,6 +177,8 @@ void DrawingAreaProxyCoordinatedGraphics::deviceScaleFactorDidChange(CompletionH
 {
     if (m_webPageProxy)
         send(Messages::DrawingArea::SetDeviceScaleFactor(m_webPageProxy->deviceScaleFactor()));
+    if (RefPtr page = m_webPageProxy.get())
+        page->setViewNeedsDisplay(IntRect(IntPoint(), page->viewSize()));
     completionHandler();
 }
 
