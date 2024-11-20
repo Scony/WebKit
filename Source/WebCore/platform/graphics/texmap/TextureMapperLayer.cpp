@@ -362,27 +362,27 @@ void TextureMapperLayer::setDamage(const Damage& damage)
     m_damage = damage;
 }
 
-void TextureMapperLayer::collectDamage(TextureMapper& textureMapper, Damage& damage)
+void TextureMapperLayer::collectDamage(TextureMapper& textureMapper, Damage& damage, const FloatSize& viewportSize)
 {
     TextureMapperPaintOptions options(textureMapper);
     options.surface = textureMapper.currentSurface();
-    collectDamageRecursive(options, damage);
+    collectDamageRecursive(options, damage, viewportSize);
 }
 
-void TextureMapperLayer::collectDamageRecursive(TextureMapperPaintOptions& options, Damage& damage)
+void TextureMapperLayer::collectDamageRecursive(TextureMapperPaintOptions& options, Damage& damage, const FloatSize& viewportSize)
 {
     if (!isVisible())
         return;
 
     SetForScope scopedOpacity(options.opacity, options.opacity * m_currentOpacity);
 
-    collectDamageSelf(options, damage);
+    collectDamageSelf(options, damage, viewportSize);
 
     for (auto* child : m_children)
-        child->collectDamageRecursive(options, damage);
+        child->collectDamageRecursive(options, damage, viewportSize);
 }
 
-void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options, Damage& damage)
+void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options, Damage& damage, const FloatSize& viewportSize)
 {
     if (!m_state.visible || !m_state.contentsVisible)
         return;
@@ -390,6 +390,30 @@ void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options, D
     auto targetRect = layerRect();
     if (targetRect.isEmpty())
         return;
+
+    // FIXME: Temporary workaround for scrolling problems -> remove once scrolling is reflected correctly in the Damage.
+    if (m_parent) {
+        if (m_parent->m_parent && !m_parent->m_state.size.isZero()) {
+            FloatSize relativeBoundingBoxSize = m_state.size + toFloatSize(m_state.pos);
+            if (relativeBoundingBoxSize.width() > m_parent->m_state.size.width() || relativeBoundingBoxSize.height() > m_parent->m_state.size.height()) {
+                damage.invalidate();
+                m_damage = Damage();
+                return;
+            }
+        }
+        FloatPoint accumulatedPositionFromRoot;
+        auto* layer = this;
+        while (layer) {
+            accumulatedPositionFromRoot += layer->m_state.pos;
+            layer = layer->m_parent;
+        }
+        FloatSize absoluteBoundingBoxSize = m_state.size + toFloatSize(accumulatedPositionFromRoot);
+        if (absoluteBoundingBoxSize.width() > viewportSize.width() || absoluteBoundingBoxSize.height() > viewportSize.height()) {
+            damage.invalidate();
+            m_damage = Damage();
+            return;
+        }
+    }
 
     TransformationMatrix transform;
     transform.translate(options.offset.width(), options.offset.height());

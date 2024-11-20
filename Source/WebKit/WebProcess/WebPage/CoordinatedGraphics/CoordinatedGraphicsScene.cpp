@@ -77,18 +77,17 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
             frameDamage.add(clipRect);
         } else {
             WTFBeginSignpost(this, CollectDamage);
-            currentRootLayer->collectDamage(*m_textureMapper, frameDamage);
+            currentRootLayer->collectDamage(*m_textureMapper, frameDamage, clipRect.size());
             WTFEndSignpost(this, CollectDamage);
 
-            ASSERT(!frameDamage.isInvalid());
-            if (m_damagePropagation == Damage::Propagation::Unified) {
+            if (!frameDamage.isInvalid() && m_damagePropagation == Damage::Propagation::Unified) {
                 Damage boundsDamage;
                 boundsDamage.add(frameDamage.bounds());
                 frameDamage = WTFMove(boundsDamage);
             }
         }
 
-        const auto& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(frameDamage);
+        const auto& damageSinceLastSurfaceUse = m_client->addSurfaceDamage(!frameDamage.isInvalid() && !frameDamage.isEmpty() ? frameDamage : Damage::invalid());
         if (!damageSinceLastSurfaceUse.isInvalid()) {
             actualClipRect = static_cast<FloatRoundedRect>(damageSinceLastSurfaceUse.bounds());
             didChangeClipRect = true;

@@ -119,7 +119,7 @@ public:
 
 #if ENABLE(DAMAGE_TRACKING)
     void setDamage(const Damage&);
-    void collectDamage(TextureMapper&, Damage&);
+    void collectDamage(TextureMapper&, Damage&, const FloatSize&);
 #endif
 
     FloatRect effectiveLayerRect() const;
@@ -184,8 +184,8 @@ private:
     void collect3DRenderingContextLayers(Vector<TextureMapperLayer*>&);
 
 #if ENABLE(DAMAGE_TRACKING)
-    void collectDamageRecursive(TextureMapperPaintOptions&, Damage&);
-    void collectDamageSelf(TextureMapperPaintOptions&, Damage&);
+    void collectDamageRecursive(TextureMapperPaintOptions&, Damage&, const FloatSize&);
+    void collectDamageSelf(TextureMapperPaintOptions&, Damage&, const FloatSize&);
     FloatRect transformRectForDamage(const FloatRect&, const TransformationMatrix&, const TextureMapperPaintOptions&);
 #endif
 
