@@ -72,9 +72,10 @@ void CoordinatedGraphicsScene::paintToCurrentGLContext(const TransformationMatri
 #if ENABLE(DAMAGE_TRACKING)
     if (m_client && m_damagePropagation != Damage::Propagation::None) {
         Damage frameDamage;
-        if (sceneHasRunningAnimations) {
-            // When running animations for now we need to damage the whole frame.
-            frameDamage.add(clipRect);
+        // if (sceneHasRunningAnimations) {
+        //     // When running animations for now we need to damage the whole frame.
+        //     frameDamage.add(clipRect);
+        if (false) {
         } else {
             WTFBeginSignpost(this, CollectDamage);
             currentRootLayer->collectDamage(*m_textureMapper, frameDamage, clipRect.size());

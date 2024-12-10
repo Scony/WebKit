@@ -185,7 +185,10 @@ private:
 
 #if ENABLE(DAMAGE_TRACKING)
     void collectDamageRecursive(TextureMapperPaintOptions&, Damage&, const FloatSize&);
+    void collectDamageSelfAndChildren(TextureMapperPaintOptions&, Damage&, const FloatSize&);
     void collectDamageSelf(TextureMapperPaintOptions&, Damage&, const FloatSize&);
+    void collectDamageSelfChildrenReplicaFilterAndMask(TextureMapperPaintOptions&, Damage&, const FloatSize&);
+    void collectDamageSelfChildrenFilterAndMask(TextureMapperPaintOptions&, Damage&);
     FloatRect transformRectForDamage(const FloatRect&, const TransformationMatrix&, const TextureMapperPaintOptions&);
 #endif
 
@@ -278,6 +281,7 @@ private:
 
 #if ENABLE(DAMAGE_TRACKING)
     Damage m_damage;
+    FloatRect m_animationsBoundingBox { };
 #endif
 
     struct {
