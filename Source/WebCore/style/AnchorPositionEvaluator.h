@@ -98,14 +98,15 @@ public:
     static std::optional<double> evaluate(const BuilderState&, std::optional<ScopedName> elementName, Side);
     static std::optional<double> evaluateSize(const BuilderState&, std::optional<ScopedName> elementName, std::optional<AnchorSizeDimension>);
 
-    static void updateAnchorPositioningStatesAfterInterleavedLayout(const Document&);
-    static void cleanupAnchorPositionedState(Element&);
+    static void updateAnchorPositioningStatesAfterInterleavedLayout(Document&);
     static void updateSnapshottedScrollOffsets(Document&);
 
     static LayoutRect computeAnchorRectRelativeToContainingBlock(CheckedRef<const RenderBoxModelObject> anchorBox, const RenderBlock& containingBlock);
 
     using AnchorToAnchorPositionedMap = SingleThreadWeakHashMap<const RenderBoxModelObject, Vector<Ref<Element>>>;
     static AnchorToAnchorPositionedMap makeAnchorPositionedForAnchorMap(Document&);
+
+    static void visitAllAnchorPositionedStates(Document&, std::function<void(AnchorPositionedStates&)>);
 
 private:
     static AnchorElements findAnchorsForAnchorPositionedElement(const Element&, const UncheckedKeyHashSet<AtomString>& anchorNames, const AnchorsForAnchorName&);

@@ -1273,10 +1273,12 @@ std::unique_ptr<Update> TreeResolver::resolve()
 
     if (m_hasUnresolvedAnchorPositionedElements) {
         // We need to ensure that style resolution visits any unresolved anchor-positioned elements.
-        for (auto elementAndState : m_document->styleScope().anchorPositionedStates()) {
-            if (elementAndState.value->stage < AnchorPositionResolutionStage::Resolved)
-                elementAndState.key.invalidateForResumingAnchorPositionedElementResolution();
-        }
+        AnchorPositionEvaluator::visitAllAnchorPositionedStates(m_document.get(), [](auto& states) {
+            for (auto elementAndState : states) {
+                if (elementAndState.value->stage < AnchorPositionResolutionStage::Resolved)
+                    elementAndState.key.invalidateForResumingAnchorPositionedElementResolution();
+            }
+        });
     }
 
     if (m_update->roots().isEmpty())
@@ -1292,7 +1294,7 @@ auto TreeResolver::updateAnchorPositioningState(Element& element, const RenderSt
     if (!style)
         return AnchorPositionedElementAction::None;
 
-    auto* anchorPositionedState = m_document->styleScope().anchorPositionedStates().get(element);
+    auto* anchorPositionedState = Style::Scope::forNode(element).anchorPositionedStates().get(element);
     if (!anchorPositionedState || anchorPositionedState->stage >= AnchorPositionResolutionStage::Resolved)
         return AnchorPositionedElementAction::None;
 

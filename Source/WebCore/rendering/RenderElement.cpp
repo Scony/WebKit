@@ -1630,7 +1630,7 @@ const Element* RenderElement::defaultAnchor() const
 {
     if (!element())
         return nullptr;
-    auto& anchorPositionedStates = document().styleScope().anchorPositionedStates();
+    auto& anchorPositionedStates = Style::Scope::forNode(*RenderObject::node()).anchorPositionedStates();
     auto anchoringStateLookupResult = anchorPositionedStates.find(*element());
     if (anchoringStateLookupResult == anchorPositionedStates.end() || !anchoringStateLookupResult->value)
         return nullptr;

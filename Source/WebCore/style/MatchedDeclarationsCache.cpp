@@ -91,7 +91,7 @@ bool MatchedDeclarationsCache::isCacheable(const Element& element, const RenderS
     // the relevant anchors that this element will be positioned relative to. Then, the
     // anchor-positioned element will be resolved once again, this time with the anchor
     // information needed to fully resolve the element.
-    if (element.document().styleScope().anchorPositionedStates().contains(element))
+    if (Style::Scope::forNode(element).anchorPositionedStates().contains(element))
         return false;
 
     // Getting computed style after a font environment change but before full style resolution may involve styles with non-current fonts.
