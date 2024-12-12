@@ -113,6 +113,8 @@ public:
 
     static bool overflowsInsetModifiedContainingBlock(const RenderBox& anchoredBox);
 
+    static void visitAllAnchorPositionedToAnchorMaps(Document&, std::function<void(AnchorPositionedToAnchorMap&)> visitor);
+
 private:
     static AnchorElements findAnchorsForAnchorPositionedElement(const Element&, const UncheckedKeyHashSet<AtomString>& anchorNames, const AnchorsForAnchorName&);
 };

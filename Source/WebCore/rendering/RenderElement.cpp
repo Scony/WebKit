@@ -1645,7 +1645,7 @@ const Element* RenderElement::defaultAnchor() const
     if (!element())
         return nullptr;
 
-    auto& anchorPositionedMap = document().styleScope().anchorPositionedToAnchorMap();
+    auto& anchorPositionedMap = Style::Scope::forNode(*RenderObject::node()).anchorPositionedToAnchorMap();
     auto it = anchorPositionedMap.find(*element());
     if (it == anchorPositionedMap.end())
         return nullptr;

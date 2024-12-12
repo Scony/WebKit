@@ -44,6 +44,7 @@
 #include "RenderStyleInlines.h"
 #include "RenderStyleSetters.h"
 #include "RenderView.h"
+#include "ShadowRoot.h"
 #include "StyleBuilderConverter.h"
 #include "StyleBuilderState.h"
 #include "StyleScope.h"
@@ -797,6 +798,11 @@ static bool isAcceptableAnchorElement(const RenderBoxModelObject& anchorRenderer
     if (!anchorElement)
         return false;
 
+    // An element is not acceptable anchor element if positioned element uses different style scope (as it resides in (different) shadow tree).
+    // FIXME: Add support for ::part().
+    if (&Style::Scope::forNode(*anchorElement) != &Style::Scope::forNode(anchorPositionedElement))
+        return false;
+
     if (auto anchorScopeElement = anchorScopeForAnchorElement(*anchorElement, anchorRenderer.style().anchorNames())) {
         // If the anchor is scoped, the anchor-positioned element must also be in the same scope.
         if (!anchorPositionedElement->isComposedTreeDescendantOf(*anchorScopeElement))
@@ -899,7 +905,7 @@ void AnchorPositionEvaluator::updateAnchorPositioningStatesAfterInterleavedLayou
                 for (auto& anchorElement : state.anchorElements.values())
                     anchors.append(dynamicDowncast<RenderBoxModelObject>(anchorElement->renderer()));
 
-                document.styleScope().anchorPositionedToAnchorMap().set(element.get(), WTFMove(anchors));
+                Style::Scope::forNode(element.get()).anchorPositionedToAnchorMap().set(element.get(), WTFMove(anchors));
             }
             state.stage = renderer && renderer->style().usesAnchorFunctions() ? AnchorPositionResolutionStage::ResolveAnchorFunctions : AnchorPositionResolutionStage::Resolved;
             continue;
@@ -925,7 +931,8 @@ void AnchorPositionEvaluator::updateSnapshottedScrollOffsets(Document& document)
 {
     // https://drafts.csswg.org/css-anchor-position-1/#scroll
 
-    for (auto elementAndAnchors : document.styleScope().anchorPositionedToAnchorMap()) {
+    visitAllAnchorPositionedToAnchorMaps(document, [](auto& anchorPositionedToAnchorMap) {
+    for (auto elementAndAnchors : anchorPositionedToAnchorMap) {
         CheckedRef anchorPositionedElement = elementAndAnchors.key;
         if (!anchorPositionedElement->renderer())
             continue;
@@ -963,6 +970,7 @@ void AnchorPositionEvaluator::updateSnapshottedScrollOffsets(Document& document)
 
         anchorPositionedRenderer->layer()->setSnapshottedScrollOffsetForAnchorPositioning(scrollOffset);
     }
+    });
 }
 
 auto AnchorPositionEvaluator::makeAnchorPositionedForAnchorMap(AnchorPositionedToAnchorMap& toAnchorMap) -> AnchorToAnchorPositionedMap
@@ -980,6 +988,13 @@ auto AnchorPositionEvaluator::makeAnchorPositionedForAnchorMap(AnchorPositionedT
         }
     }
     return map;
+}
+
+void AnchorPositionEvaluator::visitAllAnchorPositionedToAnchorMaps(Document& document, std::function<void(AnchorPositionedToAnchorMap&)> visitor)
+{
+    visitor(document.styleScope().anchorPositionedToAnchorMap());
+    for (Ref shadowRoot : document.inDocumentShadowRoots())
+        visitor(const_cast<ShadowRoot&>(shadowRoot.get()).styleScope().anchorPositionedToAnchorMap());
 }
 
 bool AnchorPositionEvaluator::isLayoutTimeAnchorPositioned(const RenderStyle& style)

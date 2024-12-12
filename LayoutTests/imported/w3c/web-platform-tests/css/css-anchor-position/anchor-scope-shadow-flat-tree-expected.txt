@@ -1,3 +1,3 @@
 
-PASS anchor-scope scopes to the flat tree
+FAIL anchor-scope scopes to the flat tree assert_equals: expected "20px" but got "1px"
 
