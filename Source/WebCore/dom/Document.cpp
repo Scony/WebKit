@@ -2595,6 +2595,8 @@ void Document::resolveStyle(ResolveStyleType type)
         // FIXME: Be smarter about invalidation for anchor positioning.
         // This simply repeats the entire anchor-positioning process.
         styleScope().clearAnchorPositioningState();
+        for (Ref shadowRoot : inDocumentShadowRoots())
+            const_cast<ShadowRoot&>(shadowRoot.get()).styleScope().clearAnchorPositioningState();
 
         Style::TreeResolver resolver(*this, WTFMove(m_pendingRenderTreeUpdate));
         auto styleUpdate = resolver.resolve();

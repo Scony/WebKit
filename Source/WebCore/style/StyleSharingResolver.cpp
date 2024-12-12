@@ -295,6 +295,10 @@ bool SharingResolver::canShareStyleWithElement(const Context& context, const Sty
 
     if (!m_document->styleScope().anchorPositionedStates().isEmptyIgnoringNullReferences())
         return false;
+    for (Ref shadowRoot : m_document->inDocumentShadowRoots()) {
+        if (!const_cast<ShadowRoot&>(shadowRoot.get()).styleScope().anchorPositionedStates().isEmptyIgnoringNullReferences())
+            return false;
+    }
 
     if (candidateElement.isInTopLayer() || element.isInTopLayer())
         return false;
