@@ -4044,10 +4044,12 @@ void RenderBox::computePositionedLogicalWidth(LogicalExtentComputedValues& compu
     computeInlineStaticDistance(logicalLeftLength, logicalRightLength, this, containerBlock, containerLogicalWidth);
     
     // Calculate constraint equation values for 'width' case.
-    computePositionedLogicalWidthUsing(SizeType::MainOrPreferredSize, style().logicalWidth(), containerBlock, containerWritingMode,
-                                       containerLogicalWidth, bordersPlusPadding,
-                                       logicalLeftLength, logicalRightLength, marginLogicalLeft, marginLogicalRight,
-                                       computedValues);
+    computePositionedLogicalWidthUsing(
+        SizeType::MainOrPreferredSize, style().logicalWidth(), containerBlock, containerWritingMode,
+        containerLogicalWidth, bordersPlusPadding,
+        logicalLeftLength, logicalRightLength, marginLogicalLeft, marginLogicalRight,
+        computedValues, defaultAnchorBoxForAnchorCenter != nullptr
+    );
 
     LayoutUnit transferredMinSize = LayoutUnit::min();
     LayoutUnit transferredMaxSize = LayoutUnit::max();
@@ -4166,10 +4168,12 @@ static std::optional<float> positionWithRTLInlineBoxContainingBlock(const Render
     return logicalLeftValue + marginLogicalLeftValue + distance;
 }
 
-void RenderBox::computePositionedLogicalWidthUsing(SizeType widthType, Length logicalWidth, const RenderBoxModelObject& containerBlock, WritingMode containerWritingMode,
-                                                   LayoutUnit containerLogicalWidth, LayoutUnit bordersPlusPadding,
-                                                   Length logicalLeft, Length logicalRight, Length marginLogicalLeft, Length marginLogicalRight,
-                                                   LogicalExtentComputedValues& computedValues) const
+void RenderBox::computePositionedLogicalWidthUsing(
+    SizeType widthType, Length logicalWidth, const RenderBoxModelObject& containerBlock, WritingMode containerWritingMode,
+    LayoutUnit containerLogicalWidth, LayoutUnit bordersPlusPadding,
+    Length logicalLeft, Length logicalRight, Length marginLogicalLeft, Length marginLogicalRight,
+    LogicalExtentComputedValues& computedValues, bool anchorCenterForcesShrinkToFit
+) const
 {
     ASSERT(widthType == SizeType::MinSize || widthType == SizeType::MainOrPreferredSize || !logicalWidth.isAuto());
     auto originalLogicalWidthType = logicalWidth.type();
@@ -4340,7 +4344,15 @@ void RenderBox::computePositionedLogicalWidthUsing(SizeType widthType, Length lo
         } else if (!logicalLeftIsAuto && logicalWidthIsAuto && !logicalRightIsAuto) {
             // RULE 5: (solve for width)
             logicalLeftValue = valueForLength(logicalLeft, containerLogicalWidth);
-            computedValues.m_extent = availableSpace - (logicalLeftValue + valueForLength(logicalRight, containerLogicalWidth));
+            if (!anchorCenterForcesShrinkToFit)
+                computedValues.m_extent = availableSpace - (logicalLeftValue + valueForLength(logicalRight, containerLogicalWidth));
+            else {
+                LayoutUnit logicalRightValue = valueForLength(logicalRight, containerLogicalWidth);
+                LayoutUnit preferredWidth = maxPreferredLogicalWidth() - bordersPlusPadding;
+                LayoutUnit preferredMinWidth = minPreferredLogicalWidth() - bordersPlusPadding;
+                LayoutUnit availableWidth = availableSpace - logicalLeftValue - logicalRightValue;
+                computedValues.m_extent = std::min(std::max(preferredMinWidth, availableWidth), preferredWidth);
+            }
         } else if (!logicalLeftIsAuto && !logicalWidthIsAuto && logicalRightIsAuto) {
             // RULE 6: (no need solve for right)
             logicalLeftValue = valueForLength(logicalLeft, containerLogicalWidth);
