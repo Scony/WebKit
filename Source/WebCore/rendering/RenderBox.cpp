@@ -4076,8 +4076,13 @@ void RenderBox::computePositionedLogicalWidth(LogicalExtentComputedValues& compu
     // Calculate the static distance if needed.
     computeInlineStaticDistance(logicalLeftLength, logicalRightLength, this, containerBlock, containerLogicalWidth, fragment);
     
+    Length logicalWidthLength = style().logicalWidth();
+    // In case of anchor positioning we need to compensate for inset properies resolving to 0.
+    if (defaultAnchorBoxForAnchorCenter && logicalWidthLength.isAuto() && container()->isHorizontalWritingMode() == isHorizontalWritingMode())
+        logicalWidthLength = Length(computedValues.m_extent, LengthType::Fixed);
+
     // Calculate constraint equation values for 'width' case.
-    computePositionedLogicalWidthUsing(SizeType::MainOrPreferredSize, style().logicalWidth(), containerBlock, containerWritingMode,
+    computePositionedLogicalWidthUsing(SizeType::MainOrPreferredSize, logicalWidthLength, containerBlock, containerWritingMode,
                                        containerLogicalWidth, bordersPlusPadding,
                                        logicalLeftLength, logicalRightLength, marginLogicalLeft, marginLogicalRight,
                                        computedValues);
