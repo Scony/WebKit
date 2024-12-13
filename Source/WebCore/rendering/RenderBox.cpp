@@ -4230,7 +4230,7 @@ void RenderBox::computePositionedLogicalWidth(LogicalExtentComputedValues& compu
 
     // Calculate constraint equation values for 'width' case.
     computePositionedLogicalWidthUsing(SizeType::MainOrPreferredSize,
-        styleToUse.logicalWidth(), inlineConstraints, computedValues);
+        styleToUse.logicalWidth(), inlineConstraints, computedValues, !!inlineConstraints.defaultAnchorBox);
 
     LayoutUnit transferredMinSize = LayoutUnit::min();
     LayoutUnit transferredMaxSize = LayoutUnit::max();
@@ -4342,7 +4342,7 @@ static std::optional<float> positionWithRTLInlineBoxContainingBlock(const Render
 }
 
 void RenderBox::computePositionedLogicalWidthUsing(SizeType widthType, Length logicalWidth,
-    const PositionedLayoutConstraints& inlineConstraints, LogicalExtentComputedValues& computedValues) const
+    const PositionedLayoutConstraints& inlineConstraints, LogicalExtentComputedValues& computedValues, bool anchorCenterForcesShrinkToFit) const
 {
     ASSERT(widthType == SizeType::MinSize || widthType == SizeType::MainOrPreferredSize || !logicalWidth.isAuto());
     auto originalLogicalWidthType = logicalWidth.type();
@@ -4511,7 +4511,15 @@ void RenderBox::computePositionedLogicalWidthUsing(SizeType widthType, Length lo
         } else if (!logicalLeftIsAuto && logicalWidthIsAuto && !logicalRightIsAuto) {
             // RULE 5: (solve for width)
             logicalLeftValue = inlineConstraints.insetBeforeValue();
-            computedValues.m_extent = availableSpace - (logicalLeftValue + inlineConstraints.insetAfterValue());
+            if (!anchorCenterForcesShrinkToFit)
+                computedValues.m_extent = availableSpace - (logicalLeftValue + inlineConstraints.insetAfterValue());
+            else {
+                LayoutUnit logicalRightValue = inlineConstraints.insetAfterValue();
+                LayoutUnit preferredWidth = maxPreferredLogicalWidth() - inlineConstraints.bordersPlusPadding;
+                LayoutUnit preferredMinWidth = minPreferredLogicalWidth() - inlineConstraints.bordersPlusPadding;
+                LayoutUnit availableWidth = availableSpace - logicalLeftValue - logicalRightValue;
+                computedValues.m_extent = std::min(std::max(preferredMinWidth, availableWidth), preferredWidth);
+            }
         } else if (!logicalLeftIsAuto && !logicalWidthIsAuto && logicalRightIsAuto) {
             // RULE 6: (no need solve for right)
             logicalLeftValue = inlineConstraints.insetBeforeValue();

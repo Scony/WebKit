@@ -720,8 +720,7 @@ private:
 
     struct PositionedLayoutConstraints;
     void computePositionedLogicalHeight(LogicalExtentComputedValues&) const;
-    void computePositionedLogicalWidthUsing(SizeType, Length logicalWidth, const PositionedLayoutConstraints&,
-                                            LogicalExtentComputedValues&) const;
+    void computePositionedLogicalWidthUsing(SizeType, Length logicalWidth, const PositionedLayoutConstraints&, LogicalExtentComputedValues&, bool anchorCenterForcesShrinkToFit = false) const;
     void computePositionedLogicalHeightUsing(SizeType, Length logicalHeightLength, LayoutUnit computedHeight, const PositionedLayoutConstraints&,
                                              LogicalExtentComputedValues&) const;
 
