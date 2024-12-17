@@ -259,6 +259,7 @@ void TextureMapperLayer::computeTransformsRecursive(ComputeTransformData& data)
         const float originX = m_state.anchorPoint.x() * m_state.size.width();
         const float originY = m_state.anchorPoint.y() * m_state.size.height();
 
+        TransformationMatrix oldCombined = m_layerTransforms.combined;
         m_layerTransforms.combined = parentTransform;
         m_layerTransforms.combined
             .translate3d(originX + (m_state.pos.x() - m_state.boundsOrigin.x()), originY + (m_state.pos.y() - m_state.boundsOrigin.y()), m_state.anchorPoint.z())
@@ -296,6 +297,8 @@ void TextureMapperLayer::computeTransformsRecursive(ComputeTransformData& data)
         m_layerTransforms.futureCombinedForChildren.multiply(m_state.childrenTransform);
         m_layerTransforms.futureCombinedForChildren.translate3d(-originX, -originY, -m_state.anchorPoint.z());
 #endif
+
+        damageWholeLayerDueToTransformChangeIfNeeded(oldCombined, m_layerTransforms.combined);
     }
 
     m_state.visible = m_state.backfaceVisibility || !m_layerTransforms.combined.isBackFaceVisible();
@@ -341,14 +344,17 @@ void TextureMapperLayer::computeTransformsRecursive(ComputeTransformData& data)
 #endif
 }
 
-void TextureMapperLayer::paint(TextureMapper& textureMapper)
+void TextureMapperLayer::prepareTreeForPainting(TextureMapper& textureMapper)
 {
     processDescendantLayersFlatteningRequirements();
 
     ComputeTransformData data;
     computeTransformsRecursive(data);
     textureMapper.setDepthRange(data.zNear, data.zFar);
+}
 
+void TextureMapperLayer::paint(TextureMapper& textureMapper)
+{
     TextureMapperPaintOptions options(textureMapper);
     options.surface = textureMapper.currentSurface();
     paintRecursive(options);
@@ -420,7 +426,9 @@ void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options, D
     transform.multiply(options.transform);
     transform.multiply(m_layerTransforms.combined);
 
-    if (m_contentsLayer || m_damage.isInvalid()) {
+    if (m_damage.isInvalid())
+        damage.invalidate();
+    else if (m_contentsLayer) {
         // Layers with content layer are always fully damaged for now...
         damage.add(transformRectForDamage(targetRect, transform, options));
     } else {
@@ -435,6 +443,19 @@ void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options, D
     }
 
     m_damage = Damage();
+}
+
+void TextureMapperLayer::damageWholeLayerDueToTransformChangeIfNeeded(const TransformationMatrix& beforeChange, const TransformationMatrix& afterChange)
+{
+    if (beforeChange != afterChange && !m_damage.isInvalid() && m_damage.isEmpty()) {
+        if (auto inversedTransform = afterChange.inverse()) {
+            FloatRect transformedLayerRect = afterChange.mapRect(layerRect());
+            transformedLayerRect.unite(beforeChange.mapRect(layerRect()));
+            m_damage.add(inversedTransform->mapRect(transformedLayerRect));
+        } else
+            // If damaged rect cannot be calculated, fall back to invalidating whole frame.
+            m_damage.invalidate();
+    }
 }
 
 FloatRect TextureMapperLayer::transformRectForDamage(const FloatRect& rect, const TransformationMatrix& transform, const TextureMapperPaintOptions& options)
@@ -1221,6 +1242,7 @@ void TextureMapperLayer::setPreserves3D(bool preserves3D)
 
 void TextureMapperLayer::setTransform(const TransformationMatrix& transform)
 {
+    damageWholeLayerDueToTransformChangeIfNeeded(m_state.transform, transform);
     m_state.transform = transform;
 }
 

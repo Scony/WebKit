@@ -113,6 +113,7 @@ public:
     bool syncAnimations(MonotonicTime);
     WEBCORE_EXPORT bool descendantsOrSelfHaveRunningAnimations() const;
 
+    WEBCORE_EXPORT void prepareTreeForPainting(TextureMapper&);
     WEBCORE_EXPORT void paint(TextureMapper&);
 
     void addChild(TextureMapperLayer*);
@@ -186,6 +187,7 @@ private:
 #if ENABLE(DAMAGE_TRACKING)
     void collectDamageRecursive(TextureMapperPaintOptions&, Damage&, const FloatSize&);
     void collectDamageSelf(TextureMapperPaintOptions&, Damage&, const FloatSize&);
+    void damageWholeLayerDueToTransformChangeIfNeeded(const TransformationMatrix& beforeChange, const TransformationMatrix& afterChange);
     FloatRect transformRectForDamage(const FloatRect&, const TransformationMatrix&, const TextureMapperPaintOptions&);
 #endif
 
