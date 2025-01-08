@@ -301,6 +301,8 @@ private:
 #if ENABLE(SCROLLING_THREAD)
     Markable<ScrollingNodeID> m_scrollingNodeID WTF_GUARDED_BY_LOCK(m_lock);
 #endif
+
+    void log(OptionSet<Change>& m_pendingChanges, RefPtr<CoordinatedBackingStoreProxy>& m_backingStoreProxy, std::unique_ptr<CoordinatedPlatformLayerBuffer>& m_contentsBuffer, TextureMapperLayer* layer) const;
 };
 
 } // namespace WebCore

@@ -31,6 +31,7 @@
 #include "CompositingRunLoop.h"
 #include "CoordinatedSceneState.h"
 #include "LayerTreeHost.h"
+#include "ThreadedCompositorLogs.h"
 #include "WebPage.h"
 #include "WebProcess.h"
 #include <WebCore/CoordinatedPlatformLayer.h>
@@ -251,6 +252,8 @@ void ThreadedCompositor::paintToCurrentGLContext(const TransformationMatrix& mat
     std::optional<FloatRoundedRect> rectContainingRegionThatActuallyChanged;
 #if ENABLE(DAMAGE_TRACKING)
     currentRootLayer.prepareForPainting(*m_textureMapper);
+    // TODO: #if !LOG_DISABLED && ENABLE(TEXMAP_DEBUGGING)
+    TextureMapperLayer::showTree(currentRootLayer);
     Damage frameDamage;
     if (m_damagePropagation != Damage::Propagation::None) {
         WTFBeginSignpost(this, CollectDamage);
@@ -264,6 +267,7 @@ void ThreadedCompositor::paintToCurrentGLContext(const TransformationMatrix& mat
         }
 
         const auto& damageSinceLastSurfaceUse = m_surface->addDamage(!frameDamage.isInvalid() && !frameDamage.isEmpty() ? frameDamage : Damage::invalid());
+        log(clipRect, frameDamage, damageSinceLastSurfaceUse);
         if (!m_damageVisualizer && !damageSinceLastSurfaceUse.isInvalid() && !FloatRect(damageSinceLastSurfaceUse.bounds()).contains(clipRect))
             rectContainingRegionThatActuallyChanged = FloatRoundedRect(damageSinceLastSurfaceUse.bounds());
     }
@@ -290,6 +294,7 @@ void ThreadedCompositor::paintToCurrentGLContext(const TransformationMatrix& mat
 
     if (sceneHasRunningAnimations)
         scheduleUpdate();
+    WTFLogAlways("------------------------------------------------------------------------------------------");
 }
 
 void ThreadedCompositor::renderLayerTree()

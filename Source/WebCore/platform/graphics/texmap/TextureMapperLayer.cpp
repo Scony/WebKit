@@ -1441,4 +1441,163 @@ FloatRect TextureMapperLayer::effectiveLayerRect() const
     return layerRect();
 }
 
+// TODO: #if !LOG_DISABLED && ENABLE(TEXMAP_DEBUGGING)
+
+void TextureMapperLayer::showTree(const TextureMapperLayer& layer)
+{
+    layer.showTreeForThis();
+}
+
+void TextureMapperLayer::showTreeForThis() const
+{
+    TextStream stream(TextStream::LineMode::MultipleLine, TextStream::Formatting::SVGStyleRect);
+
+    stream.nextLine();
+    stream << "TextureMapperLayer tree:";
+
+    // Legend.
+    stream.nextLine();
+    stream << "(V)isible/(I)nvisible, (F)lattened, (L)eaf of..., (P)reserves 3D, Has (M)ask, Has (B)ackdrop, Has (C)ontents, Has B(A)cking";
+    stream.nextLine();
+
+    outputSubTree(stream, 1);
+    WTFLogAlways("%s", stream.release().utf8().data());
+}
+
+void TextureMapperLayer::outputSubTree(TextStream& stream, int depth) const
+{
+    outputLayer(stream, depth);
+
+    for (auto* child : m_children)
+        child->outputSubTree(stream, depth + 1);
+}
+
+WTF::TextStream& operator<<(WTF::TextStream& stream, const TransformationMatrix::Decomposed2Type& decomposed)
+{
+    stream << "[2d/";
+    if (decomposed.translateX != 0.0 || decomposed.translateY != 0.0)
+        stream << "t(" << decomposed.translateX << "," << decomposed.translateY << ")";
+    if (decomposed.scaleX != 1.0 || decomposed.scaleY != 1.0)
+        stream << "s(" << decomposed.scaleX << "," << decomposed.scaleY << ")";
+    if (decomposed.angle != 0.0)
+        stream << "a(" << decomposed.angle << ")";
+    if (decomposed.m11 != 1.0 || decomposed.m12 != 0.0 || decomposed.m21 != 0.0 || decomposed.m22 != 1.0)
+        stream << "m(" << decomposed.m11 << "," << decomposed.m12 << "," << decomposed.m21 << "," << decomposed.m22 << ")";
+    stream << "]";
+    return stream;
+}
+
+WTF::TextStream& operator<<(WTF::TextStream& stream, const TransformationMatrix::Decomposed4Type& decomposed)
+{
+    stream << "[3d/";
+    if (decomposed.translateX != 0.0 || decomposed.translateY != 0.0 || decomposed.translateZ != 0.0)
+        stream << "t(" << decomposed.translateX << "," << decomposed.translateY << "," << decomposed.translateZ << ")";
+    if (decomposed.scaleX != 1.0 || decomposed.scaleY != 1.0 || decomposed.scaleZ != 1.0)
+        stream << "s(" << decomposed.scaleX << "," << decomposed.scaleY << "," << decomposed.scaleZ << ")";
+    if (decomposed.skewXY != 0.0 || decomposed.skewXZ != 0.0 || decomposed.skewYZ != 0.0)
+        stream << "k(" << decomposed.skewXY << "," << decomposed.skewXZ << "," << decomposed.skewYZ << ")";
+    if (decomposed.quaternion.x != 0.0 || decomposed.quaternion.y != 0.0 || decomposed.quaternion.z != 0.0 || decomposed.quaternion.w != 1.0)
+        stream << "q(" << decomposed.quaternion.x << "," << decomposed.quaternion.y << "," << decomposed.quaternion.z << "," << decomposed.quaternion.w << ")";
+    if (decomposed.perspectiveX != 0.0 || decomposed.perspectiveY != 0.0 || decomposed.perspectiveZ != 0.0 || decomposed.perspectiveW != 1.0)
+        stream << "p(" << decomposed.perspectiveX << "," << decomposed.perspectiveY << "," << decomposed.perspectiveZ << "," << decomposed.perspectiveW << ")";
+    stream << "]";
+    return stream;
+}
+
+static void toStr(const TransformationMatrix& transform, WTF::TextStream& stream)
+{
+    if (transform.isIdentity()) {
+        stream << "[-]";
+    }
+    else if (transform.to2dTransform() == transform) {
+        TransformationMatrix::Decomposed2Type decomposedTransform;
+        if (transform.decompose2(decomposedTransform))
+            stream << decomposedTransform;
+        else
+            stream << "[X]";
+    } else {
+        TransformationMatrix::Decomposed4Type decomposedTransform;
+        if (transform.decompose4(decomposedTransform))
+            stream << decomposedTransform;
+        else
+            stream << "[X]";
+    }
+}
+
+void TextureMapperLayer::outputLayer(TextStream& stream, int depth) const
+{
+    if (isVisible())
+        stream << "V";
+    else
+        stream << "I";
+
+    if (isFlattened())
+        stream << "F";
+    else
+        stream << "-";
+
+    if (isLeafOf3DRenderingContext())
+        stream << "L";
+    else
+        stream << "-";
+
+    if (preserves3D())
+        stream << "P";
+    else
+        stream << "-";
+
+    if (hasMask())
+        stream << "M";
+    else
+        stream << "-";
+
+    if (hasBackdrop())
+        stream << "B";
+    else
+        stream << "-";
+
+    if (m_contentsLayer)
+        stream << "C";
+    else
+        stream << "-";
+
+    if (m_backingStore)
+        stream << "A";
+    else
+        stream << "-";
+
+    for (int i = 0; i < depth * 2; i++)
+        stream << " ";
+
+    stream << "Layer (" << this << ") ";
+    stream << effectiveLayerRect();
+
+    stream << " Xf"; toStr(m_state.transform, stream);
+    stream << " chldXf"; toStr(m_state.childrenTransform, stream);
+    stream << " combXf"; toStr(m_layerTransforms.combined, stream);
+
+    if (!m_animations.isEmpty())
+    stream << " anims:" << m_animations.size();
+
+    if (m_damage.isInvalid() || !m_damage.rects().isEmpty()) {
+    stream << " dmg:(v?" << (int)!m_damage.isInvalid()
+           << ",#" << (int)m_damage.rects().size()
+           << "," << m_damage.bounds().x()
+           << "," << m_damage.bounds().y()
+           << "," << m_damage.bounds().width()
+           << "," << m_damage.bounds().height() << ")";
+    }
+
+    if (m_inferredDamage.isInvalid() || !m_inferredDamage.rects().isEmpty()) {
+    stream << " idmg:(v?" << (int)!m_inferredDamage.isInvalid()
+           << ",#" << (int)m_inferredDamage.rects().size()
+           << "," << m_inferredDamage.bounds().x()
+           << "," << m_inferredDamage.bounds().y()
+           << "," << m_inferredDamage.bounds().width()
+           << "," << m_inferredDamage.bounds().height() << ")";
+    }
+
+    stream.nextLine();
+}
+
 }

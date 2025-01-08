@@ -34,6 +34,7 @@
 #include "CoordinatedPlatformLayerBuffer.h"
 #include "CoordinatedPlatformLayerBufferHolePunch.h"
 #include "CoordinatedPlatformLayerBufferVideo.h"
+#include "CoordinatedPlatformLayerLogs.h"
 #include "CoordinatedTileBuffer.h"
 #include "GraphicsContext.h"
 #include "GraphicsLayerCoordinated.h"
@@ -828,10 +829,12 @@ void CoordinatedPlatformLayer::flushCompositingState(TextureMapper& textureMappe
 {
     ASSERT(!isMainThread());
     Locker locker { m_lock };
+    log(m_pendingChanges, m_backingStoreProxy, m_contentsBuffer.pending, m_target.get());
     if (m_pendingChanges.isEmpty() && !m_backingStoreProxy)
         return;
 
     auto& layer = ensureTarget();
+
     if (m_pendingChanges.contains(Change::Position))
         layer.setPosition(m_position);
 
