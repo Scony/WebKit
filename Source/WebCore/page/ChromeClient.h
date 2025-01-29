@@ -23,6 +23,7 @@
 
 #include "AutoplayEvent.h"
 #include "ContactInfo.h"
+#include "Damage.h"
 #include "DatabaseDetails.h"
 #include "DeviceOrientationOrMotionPermissionState.h"
 #include "DisabledAdaptations.h"
@@ -82,6 +83,7 @@ class AccessibilityObject;
 class ColorChooser;
 class ColorChooserClient;
 class Cursor;
+class DamageForTesting;
 class DataListSuggestionPicker;
 class DataListSuggestionsClient;
 class DateTimeChooser;
@@ -713,6 +715,8 @@ public:
     virtual void didDispatchClickEvent(const PlatformMouseEvent&, Node&) { }
 
     virtual void didProgrammaticallyClearTextFormControl(const HTMLTextFormControlElement&) { }
+
+    virtual WebCore::DamageForTesting* getDamageForTesting() const { return nullptr; }
 
     WEBCORE_EXPORT virtual ~ChromeClient();
 

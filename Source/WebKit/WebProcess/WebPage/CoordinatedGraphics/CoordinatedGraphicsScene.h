@@ -34,6 +34,7 @@
 
 namespace WebCore {
 class CoordinatedPlatformLayer;
+class FloatRoundedRect;
 }
 
 namespace WebKit {
@@ -45,6 +46,7 @@ public:
     virtual void updateViewport() = 0;
 #if ENABLE(DAMAGE_TRACKING)
     virtual const WebCore::Damage& addSurfaceDamage(const WebCore::Damage&) = 0;
+    virtual WebCore::DamageForTesting* damageInfo() const = 0;
 #endif
 };
 

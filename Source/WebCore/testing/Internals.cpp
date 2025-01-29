@@ -7811,4 +7811,55 @@ void Internals::setShouldSkipResourceMonitorThrottling(bool flag)
 }
 #endif
 
+#if ENABLE(DAMAGE_TRACKING)
+std::optional<Internals::DamagePropagation> Internals::getCurrentDamagePropagation() const
+{
+    RefPtr document = contextDocument();
+    if (!document || !document->page())
+        return std::nullopt;
+
+    auto damagePropagation = ([](const Settings& settings) {
+        if (!settings.propagateDamagingInformation())
+            return Damage::Propagation::None;
+        if (settings.unifyDamagedRegions())
+            return Damage::Propagation::Unified;
+        return Damage::Propagation::Region;
+    })(document->page()->settings());
+
+    return damagePropagation;
+}
+
+Vector<Internals::DamageDetails> Internals::getDamageDetails() const
+{
+    Vector<Internals::DamageDetails> damageDetails;
+
+    RefPtr document = contextDocument();
+    if (!document || !document->page())
+        return damageDetails;
+
+    const auto& damageForTesting = document->page()->chrome().client().getDamageForTesting();
+    if (!damageForTesting)
+        return damageDetails;
+
+    const auto& damageData = damageForTesting->damageInformation();
+    for (size_t i = 0; i < damageData.size(); ++i) {
+        DamageDetails details;
+        details.sequenceId = i;
+
+        const auto& damage = damageData[i];
+        details.isValid = damage.first;
+
+        const auto& damageRegion = damage.second;
+
+        details.bounds = DOMRect::create(damageRegion.bounds());
+        details.rects = DOMRectList::create(damageRegion.rects().map([](const IntRect& r) -> FloatRect {
+            return FloatRect(r);
+        }));
+        damageDetails.append(WTFMove(details));
+    }
+
+    return damageDetails;
+}
+#endif
+
 } // namespace WebCore

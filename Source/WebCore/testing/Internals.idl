@@ -469,6 +469,23 @@ enum RenderingMode {
     "Accelerated"
 };
 
+[Conditional=DAMAGE_TRACKING] enum DamagePropagation {
+    "None",
+    "Region",
+    "Unified"
+};
+
+[
+    Conditional=DAMAGE_TRACKING,
+    ExportMacro=WEBCORE_TESTSUPPORT_EXPORT,
+    JSGenerateToJSObject,
+] dictionary DamageDetails {
+    unsigned long sequenceId;
+    boolean isValid = false;
+    DOMRect bounds;
+    DOMRectList rects;
+};
+
 [
     ExportMacro=WEBCORE_TESTSUPPORT_EXPORT,
     LegacyNoInterfaceObject,
@@ -738,6 +755,9 @@ enum RenderingMode {
     boolean testProcessIncomingSyncMessagesWhenWaitingForSyncReply();
 
     undefined setResourceCachingDisabledByWebInspector(boolean disabled);
+
+    [Conditional=DAMAGE_TRACKING] DamagePropagation? getCurrentDamagePropagation();
+    [Conditional=DAMAGE_TRACKING] sequence<DamageDetails> getDamageDetails();
 
     // Flags for layerTreeAsText.
     const unsigned short LAYER_TREE_INCLUDES_VISIBLE_RECTS = 1;

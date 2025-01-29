@@ -59,6 +59,10 @@
 #include "AudioSession.h"
 #endif
 
+#if ENABLE(DAMAGE_TRACKING)
+#include "Damage.h"
+#endif
+
 #if ENABLE(DATA_DETECTION)
 OBJC_CLASS DDScannerResult;
 #endif
@@ -1553,6 +1557,18 @@ public:
     bool shouldSkipResourceMonitorThrottling() const;
     void setShouldSkipResourceMonitorThrottling(bool);
 #endif
+
+#if ENABLE(DAMAGE_TRACKING)
+    using DamagePropagation = Damage::Propagation;
+    struct DamageDetails {
+        unsigned sequenceId;
+        bool isValid = false;
+        RefPtr<DOMRect> bounds;
+        RefPtr<DOMRectList> rects;
+    };
+    std::optional<DamagePropagation> getCurrentDamagePropagation() const;
+    Vector<DamageDetails> getDamageDetails() const;
+#endif // ENABLE(DAMAGE_TRACKING)
 
 private:
     explicit Internals(Document&);

@@ -222,6 +222,10 @@ void ThreadedCompositor::setDamagePropagation(WebCore::Damage::Propagation damag
 
 const Damage& ThreadedCompositor::addSurfaceDamage(const Damage& damage)
 {
+    if (!m_damageInfo)
+        m_damageInfo = WTF::makeUnique<DamageForTesting>();
+    m_damageInfo->addDamage(std::make_pair(!damage.isInvalid(), damage.region()));
+
     return m_surface->addDamage(damage);
 }
 #endif

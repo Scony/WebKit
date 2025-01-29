@@ -35,12 +35,17 @@
 #include "APIObject.h"
 #include "APISecurityOrigin.h"
 #include "APIString.h"
+#if ENABLE(DAMAGE_TRACKING)
+#include "CoordinatedGraphicsScene.h"
+#endif
 #include "DrawingArea.h"
+#include "DrawingAreaCoordinatedGraphics.h"
 #include "FindController.h"
 #include "FrameInfoData.h"
 #include "HangDetectionDisabler.h"
 #include "ImageBufferShareableBitmapBackend.h"
 #include "InjectedBundleNodeHandle.h"
+#include "LayerTreeHost.h"
 #include "MessageSenderInlines.h"
 #include "NavigationActionData.h"
 #include "NetworkConnectionToWebProcessMessages.h"
@@ -1977,6 +1982,14 @@ void WebChromeClient::didDispatchClickEvent(const PlatformMouseEvent& event, Nod
 void WebChromeClient::didProgrammaticallyClearTextFormControl(const HTMLTextFormControlElement& element)
 {
     protectedPage()->didProgrammaticallyClearTextFormControl(element);
+}
+
+WebCore::DamageForTesting* WebChromeClient::getDamageForTesting() const
+{
+    auto layerTreeHost = static_cast<LayerTreeHost*>(graphicsLayerFactory());
+
+    auto client = static_cast<CoordinatedGraphicsSceneClient*>(layerTreeHost->threadedCompositor());
+    return client->damageInfo();
 }
 
 } // namespace WebKit

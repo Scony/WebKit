@@ -104,6 +104,7 @@ private:
     void updateViewport() override;
 #if ENABLE(DAMAGE_TRACKING)
     const WebCore::Damage& addSurfaceDamage(const WebCore::Damage&) override;
+    WebCore::DamageForTesting* damageInfo() const override { return m_damageInfo.get(); }
 #endif
 
     void renderLayerTree();
@@ -148,6 +149,9 @@ private:
     } m_display;
 
     Ref<ThreadedDisplayRefreshMonitor> m_displayRefreshMonitor;
+#endif
+#if ENABLE(DAMAGE_TRACKING)
+    std::unique_ptr<WebCore::DamageForTesting> m_damageInfo;
 #endif
 };
 
