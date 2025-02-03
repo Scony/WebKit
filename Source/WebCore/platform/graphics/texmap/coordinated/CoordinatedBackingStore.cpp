@@ -93,8 +93,34 @@ void CoordinatedBackingStore::paintToTextureMapper(TextureMapper& textureMapper,
     FloatRect layerRect = { { }, m_size };
     TransformationMatrix adjustedTransform = transform * TransformationMatrix::rectToRect(layerRect, targetRect);
 
+#if ENABLE(DAMAGE_TRACKING)
+    const auto damageRects = textureMapper.damage().rects();
+#endif
     auto paintTile = [&](CoordinatedBackingStoreTile& tile) {
-        textureMapper.drawTexture(tile.texture(), tile.rect(), adjustedTransform, opacity, allTileEdgesExposed(layerRect, tile.rect()) ? TextureMapper::AllEdgesExposed::Yes : TextureMapper::AllEdgesExposed::No);
+        const auto allEdgesExposed = allTileEdgesExposed(layerRect, tile.rect()) ? TextureMapper::AllEdgesExposed::Yes : TextureMapper::AllEdgesExposed::No;
+#if ENABLE(DAMAGE_TRACKING)
+        if (!textureMapper.damage().isInvalid()
+            && !textureMapper.damage().isEmpty()
+            && adjustedTransform.isIdentity()
+            && allEdgesExposed == TextureMapper::AllEdgesExposed::No
+            && opacity == 1.0
+            && tile.texture().isOpaque()
+            && !tile.texture().filterOperation()
+        ) {
+            // We define damagedTileRect as a bounding box of all damage rects that intersect tile.rect()
+            // - this way we can keep a single texture draw call yet with potentially smaller sourceRect.
+            FloatRect damagedTileRect;
+            for (const auto& damageRect : damageRects) {
+                if (!damageRect.isEmpty())
+                    damagedTileRect.unite(intersection(tile.rect(), damageRect));
+            }
+            if (damagedTileRect.isEmpty())
+                return;
+            const auto sourceRect = FloatRect { FloatPoint { damagedTileRect.location() - tile.rect().location() }, damagedTileRect.size() };
+            textureMapper.drawTextureFragment(tile.texture(), sourceRect, damagedTileRect);
+        } else
+#endif
+        textureMapper.drawTexture(tile.texture(), tile.rect(), adjustedTransform, opacity, allEdgesExposed);
     };
 
     for (auto* tile : previousTilesToPaint)

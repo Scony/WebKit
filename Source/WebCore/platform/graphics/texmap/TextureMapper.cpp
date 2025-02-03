@@ -505,6 +505,37 @@ void TextureMapper::drawTexture(const BitmapTexture& texture, const FloatRect& t
     drawTexture(texture.id(), texture.colorConvertFlags() | (texture.isOpaque() ? OptionSet<TextureMapperFlags> { } : TextureMapperFlags::ShouldBlend), targetRect, matrix, opacity, allEdgesExposed);
 }
 
+void TextureMapper::drawTextureFragment(const BitmapTexture& sourceTexture, const FloatRect& sourceRect, const FloatRect& targetRect)
+{
+    Ref<TextureMapperShaderProgram> program = data().getShaderProgram({ TextureMapperShaderProgram::TextureRGB });
+    const auto& textureSize = sourceTexture.size();
+
+    glUseProgram(program->programID());
+
+    auto textureFragmentMatrix = TransformationMatrix::identity;
+
+    textureFragmentMatrix.translate3d(
+        double(sourceRect.x()) / textureSize.width(),
+        double(sourceRect.y()) / textureSize.height(),
+        0
+    ).scale3d(
+        double(sourceRect.width()) / textureSize.width(),
+        double(sourceRect.height()) / textureSize.height(),
+        1
+    );
+
+    program->setMatrix(program->textureSpaceMatrixLocation(), textureFragmentMatrix);
+    program->setMatrix(program->textureColorSpaceMatrixLocation(), colorSpaceMatrixForFlags(sourceTexture.colorConvertFlags()));
+    glUniform1f(program->opacityLocation(), 1.0);
+    glUniform2f(program->texelSizeLocation(), 1.f / textureSize.width(), 1.f / textureSize.height());
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sourceTexture.id());
+    glUniform1i(program->samplerLocation(), 0);
+
+    draw(targetRect, TransformationMatrix(), program.get(), GL_TRIANGLE_FAN, { });
+}
+
 void TextureMapper::drawTexture(GLuint texture, OptionSet<TextureMapperFlags> flags, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed allEdgesExposed)
 {
     bool useAntialiasing = allEdgesExposed == AllEdgesExposed::Yes && !modelViewMatrix.mapQuad(targetRect).isRectilinear();
