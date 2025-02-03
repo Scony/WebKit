@@ -35,6 +35,10 @@
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
 
+#if ENABLE(DAMAGE_TRACKING)
+#include "Damage.h"
+#endif
+
 // TextureMapper is a mechanism that enables hardware acceleration of CSS animations (accelerated compositing) without
 // a need for a platform specific scene-graph library like CoreAnimation.
 
@@ -68,6 +72,7 @@ public:
     void drawNumber(int number, const Color&, const FloatPoint&, const TransformationMatrix&);
 
     WEBCORE_EXPORT void drawTexture(const BitmapTexture&, const FloatRect& target, const TransformationMatrix& modelViewMatrix = TransformationMatrix(), float opacity = 1.0f, AllEdgesExposed = AllEdgesExposed::Yes);
+    void drawTextureFragment(const BitmapTexture& sourceTexture, const FloatRect& sourceRect, const FloatRect& targetRect);
     void drawTexture(GLuint texture, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed = AllEdgesExposed::Yes);
     void drawTexturePlanarYUV(const std::array<GLuint, 3>& textures, const std::array<GLfloat, 16>& yuvToRgbMatrix, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, std::optional<GLuint> alphaPlane, AllEdgesExposed = AllEdgesExposed::Yes);
     void drawTextureSemiPlanarYUV(const std::array<GLuint, 2>& textures, bool uvReversed, const std::array<GLfloat, 16>& yuvToRgbMatrix, OptionSet<TextureMapperFlags>, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, AllEdgesExposed = AllEdgesExposed::Yes);
@@ -102,6 +107,11 @@ public:
 
     Ref<TextureMapperGPUBuffer> acquireBufferFromPool(size_t, TextureMapperGPUBuffer::Type);
 
+#if ENABLE(DAMAGE_TRACKING)
+    void setDamage(const Damage& damage) { m_damage = damage; }
+    const Damage& damage() const { return m_damage; }
+#endif
+
 private:
     bool isInMaskMode() const { return m_isMaskMode; }
     const TransformationMatrix& patternTransform() const { return m_patternTransform; }
@@ -135,6 +145,9 @@ private:
     WrapMode m_wrapMode { WrapMode::Stretch };
     TextureMapperGLData* m_data;
     ClipStack m_clipStack;
+#if ENABLE(DAMAGE_TRACKING)
+    Damage m_damage;
+#endif
 };
 
 } // namespace WebCore

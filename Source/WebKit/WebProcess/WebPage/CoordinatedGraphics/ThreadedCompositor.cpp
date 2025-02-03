@@ -266,6 +266,8 @@ void ThreadedCompositor::paintToCurrentGLContext(const TransformationMatrix& mat
         const auto& damageSinceLastSurfaceUse = m_surface->addDamage(!frameDamage.isInvalid() && !frameDamage.isEmpty() ? frameDamage : Damage::invalid());
         if (!m_damageVisualizer && !damageSinceLastSurfaceUse.isInvalid() && !FloatRect(damageSinceLastSurfaceUse.bounds()).contains(clipRect))
             rectContainingRegionThatActuallyChanged = FloatRoundedRect(damageSinceLastSurfaceUse.bounds());
+        if (!m_damageVisualizer)
+            m_textureMapper->setDamage(damageSinceLastSurfaceUse);
     }
 #endif
 

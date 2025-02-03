@@ -423,8 +423,8 @@ void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options, D
     ASSERT(!m_inferredDamage.isInvalid());
     if (!m_inferredDamage.isEmpty()) {
         for (const auto& rect : m_inferredDamage.rects()) {
-            ASSERT(!rect.isEmpty());
-            damage.add(rect);
+            if (!rect.isEmpty())
+                damage.add(rect);
         }
     } else if (m_contentsLayer) {
         // Layers with content layer are fully damaged if there's no explicit damage.
@@ -436,8 +436,8 @@ void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options, D
         // been covered by the damage tracking in setNeedsDisplay/setNeedsDisplayInRect
         // calls from GraphicsLayer.
         for (const auto& rect : m_damage.rects()) {
-            ASSERT(!rect.isEmpty());
-            damage.add(transformRectForDamage(rect, transform, options));
+            if (!rect.isEmpty())
+                damage.add(transformRectForDamage(rect, transform, options));
         }
     }
 
