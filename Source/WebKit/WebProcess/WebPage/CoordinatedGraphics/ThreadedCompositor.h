@@ -96,6 +96,8 @@ public:
 
 #if ENABLE(DAMAGE_TRACKING)
     void setDamagePropagation(WebCore::Damage::Propagation);
+    WebCore::DamageForTesting* damageInfo() const { return m_frameDamageHistory.get(); }
+    void resetDamageInfo();
 #endif
 
 private:
@@ -157,6 +159,9 @@ private:
     } m_display;
 
     Ref<ThreadedDisplayRefreshMonitor> m_displayRefreshMonitor;
+#endif
+#if ENABLE(DAMAGE_TRACKING)
+    std::unique_ptr<WebCore::DamageForTesting> m_frameDamageHistory;
 #endif
 };
 

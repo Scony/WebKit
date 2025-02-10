@@ -31,6 +31,7 @@
 #include "CSSComputedStyleDeclaration.h"
 #include "ContextDestructionObserver.h"
 #include "Cookie.h"
+#include "Damage.h"
 #include "EpochTimeStamp.h"
 #include "EventTrackingRegions.h"
 #include "ExceptionOr.h"
@@ -1545,6 +1546,18 @@ public:
     bool shouldSkipResourceMonitorThrottling() const;
     void setShouldSkipResourceMonitorThrottling(bool);
 #endif
+
+#if ENABLE(DAMAGE_TRACKING)
+    using DamagePropagation = Damage::Propagation;
+    struct FrameDamage {
+        unsigned sequenceId;
+        bool isValid = false;
+        RefPtr<DOMRectReadOnly> bounds;
+        Vector<Ref<DOMRectReadOnly>> rects;
+    };
+    std::optional<DamagePropagation> getCurrentDamagePropagation() const;
+    ExceptionOr<Vector<FrameDamage>> getFrameDamageHistory() const;
+#endif // ENABLE(DAMAGE_TRACKING)
 
 private:
     explicit Internals(Document&);

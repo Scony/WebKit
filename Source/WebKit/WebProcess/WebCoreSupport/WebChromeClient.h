@@ -556,6 +556,12 @@ private:
 
     void didProgrammaticallyClearTextFormControl(const WebCore::HTMLTextFormControlElement&) final;
 
+#if ENABLE(DAMAGE_TRACKING)
+    void resetDamageForTesting() final;
+
+    WebCore::DamageForTesting* getDamageForTesting() const final;
+#endif
+
     mutable bool m_cachedMainFrameHasHorizontalScrollbar { false };
     mutable bool m_cachedMainFrameHasVerticalScrollbar { false };
 

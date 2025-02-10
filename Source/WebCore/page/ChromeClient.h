@@ -85,6 +85,7 @@ class AccessibilityObject;
 class ColorChooser;
 class ColorChooserClient;
 class Cursor;
+class DamageForTesting;
 class DataListSuggestionPicker;
 class DataListSuggestionsClient;
 class DateTimeChooser;
@@ -725,6 +726,12 @@ public:
     virtual void didDispatchClickEvent(const PlatformMouseEvent&, Node&) { }
 
     virtual void didProgrammaticallyClearTextFormControl(const HTMLTextFormControlElement&) { }
+
+#if ENABLE(DAMAGE_TRACKING)
+    virtual void resetDamageForTesting() { }
+
+    virtual WebCore::DamageForTesting* getDamageForTesting() const { return nullptr; }
+#endif
 
     WEBCORE_EXPORT virtual ~ChromeClient();
 

@@ -167,6 +167,11 @@
 #include <WebCore/ScrollbarsControllerMock.h>
 #endif
 
+#if ENABLE(DAMAGE_TRACKING)
+#include "LayerTreeHost.h"
+#include <WebCore/Damage.h>
+#endif
+
 namespace WebKit {
 using namespace WebCore;
 using namespace HTMLNames;
@@ -1993,5 +1998,24 @@ void WebChromeClient::didProgrammaticallyClearTextFormControl(const HTMLTextForm
 {
     protectedPage()->didProgrammaticallyClearTextFormControl(element);
 }
+
+#if ENABLE(DAMAGE_TRACKING)
+void WebChromeClient::resetDamageForTesting()
+{
+    const auto* layerTreeHost = static_cast<LayerTreeHost*>(graphicsLayerFactory());
+
+    auto* threadedCompositor = layerTreeHost->threadedCompositor();
+
+    threadedCompositor->resetDamageInfo();
+}
+
+WebCore::DamageForTesting* WebChromeClient::getDamageForTesting() const
+{
+    const auto* layerTreeHost = static_cast<LayerTreeHost*>(graphicsLayerFactory());
+    const auto* threadedCompositor = layerTreeHost->threadedCompositor();
+
+    return threadedCompositor->damageInfo();
+}
+#endif
 
 } // namespace WebKit

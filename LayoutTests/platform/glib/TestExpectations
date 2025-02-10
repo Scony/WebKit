@@ -471,6 +471,9 @@ http/tests/websocket/tests/hybi/extensions.html [ Pass ]
 
 http/wpt/resource-timing/rt-initiatorType-media.html [ Pass ]
 
+# Damage-related tests are only supported on GTK and WPE
+damage/ [ Pass ]
+
 imported/mozilla/svg/text/textpath-multiline.svg [ Pass ]
 
 imported/w3c/web-platform-tests/css/css-align/baseline-rules/grid-item-input-type-number.html [ Pass ]

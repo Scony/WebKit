@@ -131,6 +131,10 @@ public:
     void ensureDrawing();
 #endif
 
+#if ENABLE(DAMAGE_TRACKING)
+    ThreadedCompositor* threadedCompositor() const { return m_compositor.get(); }
+#endif
+
 #if PLATFORM(WPE) && USE(GBM) && ENABLE(WPE_PLATFORM)
     void preferredBufferFormatsDidChange();
 #endif
