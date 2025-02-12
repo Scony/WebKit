@@ -1262,8 +1262,9 @@ void TextureMapperLayer::setSize(const FloatSize& size)
 {
 #if ENABLE(DAMAGE_TRACKING)
     if (canInferDamage() && m_state.size != size) {
-        // When layer size changes, we damage whole layer for now.
+        // When layer size changes, we damage whole layer (before and after) for now.
         // FIXME: Damage only affected area.
+        m_inferredDamage.add(m_state.transform.mapRect(FloatRect(FloatPoint::zero(), m_state.size)));
         m_inferredDamage.add(m_state.transform.mapRect(FloatRect(FloatPoint::zero(), size)));
     }
 #endif

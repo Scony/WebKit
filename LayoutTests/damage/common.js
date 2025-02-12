@@ -40,6 +40,14 @@ function assert(condition, failureMessage) {
     return true;
 }
 
+function assertEq(actual, expected, failureMessage) {
+    return assert(actual == expected, failureMessage + ", expected: " + expected + " but got: " + actual);
+}
+
+function assertGt(actual, threshold, failureMessage) {
+    return assert(actual > threshold, failureMessage + ", " + actual + " is not greater than " + threshold);
+}
+
 function assertValid(damage) {
     if (!assert(damage, "damage is empty"))
         return;
@@ -100,10 +108,22 @@ function log(entity) {
     console.log(JSON.stringify(entity));
 }
 
+function createNewElement(elementName, lambda = (el) => {}) {
+    var newElement = document.createElement(elementName);
+    lambda(newElement);
+    return newElement;
+}
+
 function createNewElementWithClass(elementName, className, lambda = (el) => {}) {
     var newElement = document.createElement(elementName);
     newElement.className = className;
     lambda(newElement);
+    return newElement;
+}
+
+function spawnNewElement(elementName, lambda = (el) => {}) {
+    var newElement = createNewElement(elementName, lambda);
+    document.body.appendChild(newElement);
     return newElement;
 }
 
