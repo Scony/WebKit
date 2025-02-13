@@ -72,6 +72,15 @@ function assertRectsEq(damageRects, expectedRects) {
     );
 }
 
+function assertContains(containerRect, allegedContainee) {
+    const containerRectStr = JSON.stringify(containerRect);
+    const allegedContaineeStr =  JSON.stringify(allegedContainee);
+    assert(
+        contains(containerRect, allegedContainee),
+        `${containerRectStr} does not contain ${allegedContaineeStr}`
+    );
+}
+
 function processAnimationFrameSequence(callbackSequence, callbackIndex) {
     if (callbackSequence.length <= callbackIndex) {
         if (window.testRunner) {
@@ -131,6 +140,15 @@ function spawnNewElementWithClass(elementName, className, lambda = (el) => {}) {
     var newElement = createNewElementWithClass(elementName, className, lambda);
     document.body.appendChild(newElement);
     return newElement;
+}
+
+function contains(containerRect, allegedContainee) {
+    return (
+        containerRect[0] <= allegedContainee[0]
+        && containerRect[1] <= allegedContainee[1]
+            && ((containerRect[0] + containerRect[2]) >= (allegedContainee[0] + allegedContainee[2]))
+            && ((containerRect[1] + containerRect[3]) >= (allegedContainee[1] + allegedContainee[3]))
+    );
 }
 
 function _simplifyDamages(damages) {

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="./common.css">
+    <style>
+      body {
+          overflow: hidden;
+      }
+      </style>
+  </head>
+  <body>
+    <script src="./common.js"></script>
+    <script>
+      setupTestCase({disableConsoleLog: true});
+
+      for (let i = 0; i < 100; i++)
+          document.body.innerHTML += 'Line ' + i + '<br>';
+
+      processAnimationFrameSequence([
+          () => {}, // Skip one RAF callback to make sure initial painting is done.
+          () => {
+              window.scroll(0, 40);
+          },
+          () => {
+              var damage = latestFrameDamage();
+              assertValid(damage);
+              // FIXME: Check damage rects explicitly once scrolling damage is improved.
+              assertContains(damage.bounds, [0, 0, window.innerWidth, window.innerHeight]);
+          },
+          () => {
+              window.scroll(0, 999999);
+          },
+          () => {
+              var damage = latestFrameDamage();
+              assertValid(damage);
+              // FIXME: Check damage rects explicitly once scrolling damage is improved.
+              assertContains(damage.bounds, [0, 0, window.innerWidth, window.innerHeight]);
+          },
+      ], 0);
+    </script>
+  </body>
+</html>
