@@ -19,7 +19,6 @@
           () => {
               var damage = latestFrameDamage();
               assertValid(damage);
-              // TODO: check why it's 54 - I'd expect 50
               assertRectsEq(damage.rects, [[0, 0, window.innerWidth, 54]]);
           },
       ], 0);
