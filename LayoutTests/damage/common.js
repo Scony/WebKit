@@ -7,6 +7,14 @@ function failTest(errorMessage) {
     }
 }
 
+function passTest() {
+    if (window.testRunner) {
+        document.body.innerText = "PASS";
+        testRunner.notifyDone();
+    } else
+        console.log("PASS");
+}
+
 function setupTestCase(options = {}) {
     if (window.testRunner) {
         testRunner.waitUntilDone();
@@ -50,8 +58,8 @@ function assertGt(actual, threshold, failureMessage) {
 
 function assertValid(damage) {
     if (!assert(damage, "damage is empty"))
-        return;
-    assert(damage.isValid, "damage is invalid");
+        return false;
+    return assert(damage.isValid, "damage is invalid");
 }
 
 function assertRectsEq(damageRects, expectedRects) {
@@ -66,7 +74,7 @@ function assertRectsEq(damageRects, expectedRects) {
     expectedRects.sort(rectCompareFunction);
     const damageRectsStr = JSON.stringify(damageRects);
     const expectedRectsStr =  JSON.stringify(expectedRects);
-    assert(
+    return assert(
         damageRectsStr == expectedRectsStr,
         `damage rects mismatch, expected: ${expectedRectsStr} but got: ${damageRectsStr}`
     );
@@ -75,7 +83,7 @@ function assertRectsEq(damageRects, expectedRects) {
 function assertContains(containerRect, allegedContainee) {
     const containerRectStr = JSON.stringify(containerRect);
     const allegedContaineeStr =  JSON.stringify(allegedContainee);
-    assert(
+    return assert(
         contains(containerRect, allegedContainee),
         `${containerRectStr} does not contain ${allegedContaineeStr}`
     );
@@ -83,11 +91,7 @@ function assertContains(containerRect, allegedContainee) {
 
 function processAnimationFrameSequence(callbackSequence, callbackIndex) {
     if (callbackSequence.length <= callbackIndex) {
-        if (window.testRunner) {
-            document.body.innerText = "PASS";
-            testRunner.notifyDone();
-        } else
-            console.log("PASS");
+        passTest();
         return;
     }
     requestAnimationFrame(() => {
