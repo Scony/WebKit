@@ -1,0 +1,39 @@
+<!-- FIXME: make both 'left' and 'top' non-zero once the resizing bug is fixed.  -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="./common.css">
+    <style>
+      .layer {
+          position: fixed;
+          left: 0px;
+          top: 0px;
+          width: 50px;
+          height: 50px;
+          background-color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layer"></div>
+    <script src="./common.js"></script>
+    <script>
+      setupTestCase({disableConsoleLog: true});
+
+      var layer = document.getElementsByClassName("layer")[0];
+
+      processAnimationFrameSequence([
+          () => {}, // Skip one RAF callback to make sure initial painting is done.
+          () => {
+              layer.style.width = "40px";
+              layer.style.height = "40px";
+          },
+          () => {
+              var damage = latestFrameDamage();
+              assertValid(damage);
+              assertRectsEq(damage.rects, [[0, 0, 50, 50]]);
+          },
+      ], 0);
+    </script>
+  </body>
+</html>
