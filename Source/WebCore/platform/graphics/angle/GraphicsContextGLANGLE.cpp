@@ -445,7 +445,8 @@ void GraphicsContextGLANGLE::validateAttributes()
     } else if (attrs.preserveDrawingBuffer) {
         // Needed for preserveDrawingBuffer:true support without antialiasing.
         bool supported = enableExtensionsImpl({ "GL_ANGLE_framebuffer_blit"_s });
-        ASSERT_UNUSED(supported, supported);
+        if (!supported)
+            m_useBlitFallback = true;
     }
 }
 
@@ -773,9 +774,18 @@ void GraphicsContextGLANGLE::prepareTexture()
         // Blit m_preserveDrawingBufferTexture into m_texture.
         ScopedGLCapability scopedScissor(GL_SCISSOR_TEST, GL_FALSE);
         ScopedGLCapability scopedDither(GL_DITHER, GL_FALSE);
-        GL_BindFramebuffer(GL_DRAW_FRAMEBUFFER_ANGLE, m_preserveDrawingBufferFBO);
-        GL_BindFramebuffer(GL_READ_FRAMEBUFFER_ANGLE, m_fbo);
-        GL_BlitFramebufferANGLE(0, 0, m_currentWidth, m_currentHeight, 0, 0, m_currentWidth, m_currentHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        if (m_useBlitFallback) {
+            GL_BindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+            GLint texture2DBinding = 0;
+            GL_GetIntegerv(GL_TEXTURE_BINDING_2D, &texture2DBinding);
+            GL_BindTexture(GL_TEXTURE_2D, m_texture);
+            GL_CopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, m_currentWidth, m_currentHeight);
+            GL_BindTexture(GL_TEXTURE_2D, texture2DBinding);
+        } else {
+            GL_BindFramebuffer(GL_DRAW_FRAMEBUFFER_ANGLE, m_preserveDrawingBufferFBO);
+            GL_BindFramebuffer(GL_READ_FRAMEBUFFER_ANGLE, m_fbo);
+            GL_BlitFramebufferANGLE(0, 0, m_currentWidth, m_currentHeight, 0, 0, m_currentWidth, m_currentHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        }
 
         if (m_isForWebGL2) {
             GL_BindFramebuffer(GL_DRAW_FRAMEBUFFER, m_state.boundDrawFBO);
