@@ -448,6 +448,7 @@ void TextureMapperLayer::collectDamageSelf(TextureMapperPaintOptions& options, D
         m_receivedDamage = { };
         m_inferredLayerDamage = { };
         m_inferredGlobalDamage = { };
+        m_damageCollectedAtLeastOnce = true;
     });
 
     if (!m_state.visible || !m_state.contentsVisible)
@@ -544,7 +545,8 @@ void TextureMapperLayer::damageWholeLayerDueToTransformChange(const Transformati
     // When the layer's transform changes, we must not only damage whole layer using new transform,
     // but also using old transform to cover the area not affected by layer anymore.
     m_inferredGlobalDamage.add(afterChange.mapRect(layerRect()));
-    m_inferredGlobalDamage.add(beforeChange.mapRect(layerRect()));
+    if (m_damageCollectedAtLeastOnce)
+        m_inferredGlobalDamage.add(beforeChange.mapRect(layerRect()));
 }
 #endif
 

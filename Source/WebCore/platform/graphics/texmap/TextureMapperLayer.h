@@ -286,6 +286,7 @@ private:
 
 #if ENABLE(DAMAGE_TRACKING)
     bool m_damagePropagation { false };
+    bool m_damageCollectedAtLeastOnce { false };
     Damage m_receivedDamage; // In layer coordinate space.
     Damage m_inferredLayerDamage; // In layer coordinate space.
     Damage m_inferredGlobalDamage; // In global coordinate space.
