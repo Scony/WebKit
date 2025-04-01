@@ -569,9 +569,26 @@ void HTMLCanvasElement::didDraw(const std::optional<FloatRect>& rect, ShouldAppl
 {
     clearCopiedImage();
     if (CheckedPtr renderer = renderBox()) {
-        if (usesContentsAsLayerContents())
+        if (usesContentsAsLayerContents()) {
+#if ENABLE(DAMAGE_TRACKING)
+            std::optional<IntRect> dirtyRect;
+            if (rect) {
+                FloatRect destRect;
+                if (CheckedPtr renderReplaced = dynamicDowncast<RenderReplaced>(*renderer))
+                    destRect = renderReplaced->replacedContentRect();
+                else
+                    destRect = renderer->contentBoxRect();
+
+                FloatRect r = mapRect(*rect, FloatRect { { }, size() }, destRect);
+                r.intersect(destRect);
+                if (!r.isEmpty())
+                    dirtyRect = enclosingIntRect(r);
+            }
+            renderer->contentChanged(ContentChangeType::CanvasPixels, dirtyRect);
+#else
             renderer->contentChanged(ContentChangeType::CanvasPixels);
-        else if (rect) {
+#endif
+        } else if (rect) {
             FloatRect destRect;
             if (CheckedPtr renderReplaced = dynamicDowncast<RenderReplaced>(*renderer))
                 destRect = renderReplaced->replacedContentRect();

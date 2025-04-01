@@ -198,7 +198,11 @@ public:
 
     bool canHaveBoxInfoInFragment() const { return !isFloating() && !isReplacedOrAtomicInline() && !isInline() && !isRenderTableCell() && isRenderBlock() && !isRenderSVGBlock(); }
 
+#if ENABLE(DAMAGE_TRACKING)
+    void contentChanged(ContentChangeType, const std::optional<IntRect>& = std::nullopt);
+#else
     void contentChanged(ContentChangeType);
+#endif
     bool hasAcceleratedCompositing() const;
 
     RenderBoxModelObject* continuation() const;

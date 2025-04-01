@@ -167,11 +167,19 @@ void RenderBoxModelObject::setSelectionState(HighlightState state)
         containingBlock->setSelectionState(state);
 }
 
+#if ENABLE(DAMAGE_TRACKING)
+void RenderBoxModelObject::contentChanged(ContentChangeType changeType, const std::optional<IntRect>& dirtyRect)
+#else
 void RenderBoxModelObject::contentChanged(ContentChangeType changeType)
+#endif
 {
     if (!hasLayer())
         return;
 
+#if ENABLE(DAMAGE_TRACKING)
+    if (dirtyRect && layer()->backing() && layer()->backing()->graphicsLayer())
+        layer()->backing()->graphicsLayer()->setNeedsDisplayInRect(*dirtyRect, GraphicsLayer::DoNotClipToLayer);
+#endif
     layer()->contentChanged(changeType);
 }
 
