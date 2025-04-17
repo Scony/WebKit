@@ -78,6 +78,7 @@ private:
     void setContentsTilePhase(const FloatSize&) override;
     void setContentsClippingRect(const FloatRoundedRect&) override;
     void setContentsNeedsDisplay() override;
+    void setContentsNeedsDisplayInRect(const FloatRect&) override;
     void setContentsToPlatformLayer(PlatformLayer*, ContentsLayerPurpose) override;
     void setContentsDisplayDelegate(RefPtr<GraphicsLayerContentsDisplayDelegate>&&, ContentsLayerPurpose) override;
     RefPtr<GraphicsLayerAsyncContentsDisplayDelegate> createAsyncContentsDisplayDelegate(GraphicsLayerAsyncContentsDisplayDelegate*) override;
@@ -179,6 +180,7 @@ private:
     void updateIndicators();
     bool isRunningTransformAnimation() const;
     bool filtersCanBeComposited(const FilterOperations&) const;
+    bool addDirtyRegionRect(const FloatRect&, ShouldClipToLayer);
 
     struct CommitState {
         FloatRect visibleRect;

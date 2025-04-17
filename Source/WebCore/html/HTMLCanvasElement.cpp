@@ -559,25 +559,37 @@ GPUCanvasContext* HTMLCanvasElement::getContextWebGPU(const String& type, GPU* g
     return dynamicDowncast<GPUCanvasContext>(m_context.get());
 }
 
+std::optional<IntRect> HTMLCanvasElement::computeDirtyRectangleIfNeeded(const std::optional<FloatRect>& rect) const
+{
+    if (rect && (!usesContentsAsLayerContents()
+#if ENABLE(DAMAGE_TRACKING)
+        || document().settings().propagateDamagingInformation()
+#endif
+    )) {
+        FloatRect destRect;
+        CheckedPtr renderer = renderBox();
+        if (CheckedPtr renderReplaced = dynamicDowncast<RenderReplaced>(*renderer))
+            destRect = renderReplaced->replacedContentRect();
+        else
+            destRect = renderer->contentBoxRect();
+
+        FloatRect r = mapRect(*rect, FloatRect { { }, size() }, destRect);
+        r.intersect(destRect);
+        if (!r.isEmpty())
+            return enclosingIntRect(r);
+    }
+    return std::nullopt;
+}
+
 void HTMLCanvasElement::didDraw(const std::optional<FloatRect>& rect, ShouldApplyPostProcessingToDirtyRect shouldApplyPostProcessingToDirtyRect)
 {
     clearCopiedImage();
     if (CheckedPtr renderer = renderBox()) {
+        const std::optional<IntRect> dirtyRect = computeDirtyRectangleIfNeeded(rect);
         if (usesContentsAsLayerContents())
-            renderer->contentChanged(ContentChangeType::CanvasPixels);
-        else if (rect) {
-            FloatRect destRect;
-            if (CheckedPtr renderReplaced = dynamicDowncast<RenderReplaced>(*renderer))
-                destRect = renderReplaced->replacedContentRect();
-            else
-                destRect = renderer->contentBoxRect();
-
-            FloatRect r = mapRect(*rect, FloatRect { { }, size() }, destRect);
-            r.intersect(destRect);
-
-            if (!r.isEmpty())
-                renderer->repaintRectangle(enclosingIntRect(r));
-        }
+            renderer->contentChanged(ContentChangeType::CanvasPixels, dirtyRect);
+        else if (dirtyRect)
+            renderer->repaintRectangle(*dirtyRect);
     }
     CanvasBase::didDraw(rect, shouldApplyPostProcessingToDirtyRect);
 }

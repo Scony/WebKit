@@ -154,6 +154,9 @@ public:
     void setContentsTileSize(const FloatSize&);
     void setContentsTilePhase(const FloatSize&);
     void setDirtyRegion(Damage&&);
+#if ENABLE(DAMAGE_TRACKING)
+    void setDamage(Damage&&);
+#endif
 
     void setFilters(const FilterOperations&);
     void setMask(CoordinatedPlatformLayer*);

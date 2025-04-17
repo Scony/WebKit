@@ -168,10 +168,13 @@ void RenderBoxModelObject::setSelectionState(HighlightState state)
         containingBlock->setSelectionState(state);
 }
 
-void RenderBoxModelObject::contentChanged(ContentChangeType changeType)
+void RenderBoxModelObject::contentChanged(ContentChangeType changeType, const std::optional<IntRect>& dirtyRect)
 {
     if (!hasLayer())
         return;
+
+    if (dirtyRect && layer()->backing() && layer()->backing()->graphicsLayer())
+        layer()->backing()->graphicsLayer()->setContentsNeedsDisplayInRect(*dirtyRect);
 
     layer()->contentChanged(changeType);
 }

@@ -96,26 +96,37 @@ void GraphicsLayerCoordinated::setNeedsDisplay()
 
 void GraphicsLayerCoordinated::setNeedsDisplayInRect(const FloatRect& initialRect, ShouldClipToLayer shouldClip)
 {
-    if (!m_drawsContent || !m_contentsVisible || m_size.isEmpty())
+    if (!m_drawsContent)
         return;
 
+    addDirtyRegionRect(initialRect, shouldClip);
+}
+
+bool GraphicsLayerCoordinated::addDirtyRegionRect(const FloatRect& initialRect, ShouldClipToLayer shouldClip)
+{
+    if (!m_contentsVisible || m_size.isEmpty())
+        return false;
+
     if (m_dirtyRegion && m_dirtyRegion->mode() == Damage::Mode::Full)
-        return;
+        return false;
 
     auto rect = initialRect;
     if (shouldClip == ClipToLayer)
         rect.intersect({ { }, m_size });
 
     if (rect.isEmpty())
-        return;
+        return false;
 
     addRepaintRect(rect);
 
     if (!m_dirtyRegion)
         m_dirtyRegion = Damage(m_size, Damage::Mode::Rectangles, 32);
 
-    if (m_dirtyRegion->add(rect))
+    if (m_dirtyRegion->add(rect)) {
         noteLayerPropertyChanged(Change::DirtyRegion, ScheduleFlush::Yes);
+        return true;
+    }
+    return false;
 }
 
 void GraphicsLayerCoordinated::setPosition(const FloatPoint& position)
@@ -330,6 +341,12 @@ void GraphicsLayerCoordinated::setContentsClippingRect(const FloatRoundedRect& c
 void GraphicsLayerCoordinated::setContentsNeedsDisplay()
 {
     if (m_contentsDisplayDelegate)
+        noteLayerPropertyChanged(Change::ContentsBufferNeedsDisplay, ScheduleFlush::Yes);
+}
+
+void GraphicsLayerCoordinated::setContentsNeedsDisplayInRect(const FloatRect& rect)
+{
+    if (addDirtyRegionRect(rect, ShouldClipToLayer::DoNotClipToLayer))
         noteLayerPropertyChanged(Change::ContentsBufferNeedsDisplay, ScheduleFlush::Yes);
 }
 
@@ -1056,6 +1073,11 @@ void GraphicsLayerCoordinated::commitLayerChanges(CommitState& commitState, floa
 
     if (m_pendingChanges.contains(Change::DirtyRegion)) {
         ASSERT(m_dirtyRegion.has_value());
+#if ENABLE(DAMAGE_TRACKING)
+        if (m_pendingChanges.contains(Change::ContentsBufferNeedsDisplay))
+            m_platformLayer->setDamage(*std::exchange(m_dirtyRegion, std::nullopt));
+        else
+#endif
         m_platformLayer->setDirtyRegion(*std::exchange(m_dirtyRegion, std::nullopt));
     }
 

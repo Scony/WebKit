@@ -564,13 +564,20 @@ void CoordinatedPlatformLayer::setDirtyRegion(Damage&& damage)
     }
 
 #if ENABLE(DAMAGE_TRACKING)
+    setDamage(WTFMove(damage));
+#endif
+}
+
+#if ENABLE(DAMAGE_TRACKING)
+void CoordinatedPlatformLayer::setDamage(Damage&& damage)
+{
     if (!m_damage)
         m_damage = WTFMove(damage);
     else
         m_damage->add(damage);
     m_pendingChanges.add(Change::Damage);
-#endif
 }
+#endif
 
 void CoordinatedPlatformLayer::setFilters(const FilterOperations& filters)
 {
