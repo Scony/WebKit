@@ -72,6 +72,8 @@ GraphicsContextSkia::GraphicsContextSkia(SkCanvas& canvas, RenderingMode renderi
     , m_destroyNotify(WTFMove(destroyNotify))
     , m_colorSpace(canvas.imageInfo().colorSpace() ? DestinationColorSpace(canvas.imageInfo().refColorSpace()) : DestinationColorSpace::SRGB())
 {
+    resetSimpleFillPaint();
+    resetSimpleStrokePaint();
 }
 
 GraphicsContextSkia::~GraphicsContextSkia()
@@ -130,6 +132,9 @@ void GraphicsContextSkia::restore(GraphicsContextState::Purpose purpose)
     }
 
     m_canvas.restore();
+
+    resetSimpleFillPaint();
+    resetSimpleStrokePaint();
 }
 
 // Draws a filled rectangle with a stroked border.
@@ -139,8 +144,7 @@ void GraphicsContextSkia::drawRect(const FloatRect& rect, float borderThickness)
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createFillPaint();
-    setupFillSource(paint);
+    const auto paint = extendedFillPaint();
     m_canvas.drawRect(rect, paint);
     if (strokeStyle() == StrokeStyle::NoStroke)
         return;
@@ -154,12 +158,11 @@ void GraphicsContextSkia::drawRect(const FloatRect& rect, float borderThickness)
 
     SkRegion region;
     region.setRects(rects, 4);
-    SkPaint strokePaint = createStrokePaint();
-    setupStrokeSource(strokePaint);
+    auto strokePaint = extendedStrokePaint();
     m_canvas.drawRegion(region, strokePaint);
 }
 
-static SkBlendMode toSkiaBlendMode(CompositeOperator operation, BlendMode blendMode)
+SkBlendMode GraphicsContextSkia::toSkiaBlendMode(CompositeOperator operation, BlendMode blendMode)
 {
     switch (blendMode) {
     case BlendMode::Normal:
@@ -235,7 +238,7 @@ static SkBlendMode toSkiaBlendMode(CompositeOperator operation, BlendMode blendM
     return SkBlendMode::kSrcOver;
 }
 
-static SkSamplingOptions toSkSamplingOptions(InterpolationQuality quality)
+SkSamplingOptions GraphicsContextSkia::toSkSamplingOptions(InterpolationQuality quality)
 {
     switch (quality) {
     case InterpolationQuality::DoNotInterpolate:
@@ -288,7 +291,7 @@ void GraphicsContextSkia::drawNativeImageInternal(NativeImage& nativeImage, cons
         }
     }
 
-    SkPaint paint = createFillPaint();
+    auto paint = simpleFillPaint();
     paint.setAlphaf(alpha());
     paint.setBlendMode(toSkiaBlendMode(options.compositeOperator(), options.blendMode()));
     bool inExtraTransparencyLayer = false;
@@ -329,7 +332,7 @@ void GraphicsContextSkia::drawLine(const FloatPoint& point1, const FloatPoint& p
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createStrokePaint();
+    auto& paint = simpleStrokePaint();
     paint.setColor(SkColor(strokeColor().colorWithAlphaMultipliedBy(alpha())));
 
     const bool isVertical = (point1.x() + strokeThickness() == point2.x());
@@ -365,6 +368,9 @@ void GraphicsContextSkia::drawLine(const FloatPoint& point1, const FloatPoint& p
     const auto& centeredPoint2 = centeredPoints[1];
 
     m_canvas.drawLine(SkFloatToScalar(centeredPoint1.x()), SkFloatToScalar(centeredPoint1.y()), SkFloatToScalar(centeredPoint2.x()), SkFloatToScalar(centeredPoint2.y()), paint);
+    paint.setColor4f(SkColors::kBlack);
+    if (strokeStyle() == StrokeStyle::DottedStroke || strokeStyle() == StrokeStyle::DashedStroke)
+        updateSimpleStrokePaintDash();
 }
 
 // This method is only used to draw the little circles used in lists.
@@ -373,8 +379,7 @@ void GraphicsContextSkia::drawEllipse(const FloatRect& boundaries)
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createFillPaint();
-    setupFillSource(paint);
+    const auto paint = extendedFillPaint();
     m_canvas.drawOval(boundaries, paint);
 }
 
@@ -411,9 +416,7 @@ void GraphicsContextSkia::fillPath(const Path& path)
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createFillPaint();
-    setupFillSource(paint);
-
+    auto paint = extendedFillPaint();
     auto fillRule = toSkiaFillType(state().fillRule());
     auto& skiaPath= *path.platformPath();
     if (skiaPath.getFillType() == fillRule) {
@@ -434,8 +437,7 @@ void GraphicsContextSkia::strokePath(const Path& path)
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint strokePaint = createStrokePaint();
-    setupStrokeSource(strokePaint);
+    auto strokePaint = extendedStrokePaint();
     drawSkiaPath(*path.platformPath(), strokePaint);
 }
 
@@ -501,18 +503,10 @@ bool GraphicsContextSkia::drawOutsetShadow(SkPaint& paint, Function<void(const S
     return false;
 }
 
-SkPaint GraphicsContextSkia::createFillPaint() const
+SkPaint GraphicsContextSkia::extendedFillPaint()
 {
-    SkPaint paint;
-    paint.setAntiAlias(shouldAntialias());
-    paint.setStyle(SkPaint::kFill_Style);
-    paint.setBlendMode(toSkiaBlendMode(compositeMode().operation, blendMode()));
+    auto paint = simpleFillPaint();
 
-    return paint;
-}
-
-void GraphicsContextSkia::setupFillSource(SkPaint& paint)
-{
     if (auto fillPattern = fillBrush().pattern()) {
         paint.setShader(fillPattern->createPlatformPattern({ }, toSkSamplingOptions(imageInterpolationQuality())));
         paint.setAlphaf(alpha());
@@ -521,24 +515,14 @@ void GraphicsContextSkia::setupFillSource(SkPaint& paint)
         paint.setShader(fillGradient->shader(alpha(), fillBrush().gradientSpaceTransform()));
     else
         paint.setColor(SkColor(fillColor().colorWithAlphaMultipliedBy(alpha())));
-}
 
-SkPaint GraphicsContextSkia::createStrokePaint() const
-{
-    SkPaint paint;
-    paint.setAntiAlias(shouldAntialias());
-    paint.setStyle(SkPaint::kStroke_Style);
-    paint.setBlendMode(toSkiaBlendMode(compositeMode().operation, blendMode()));
-    paint.setStrokeCap(m_skiaState.m_stroke.cap);
-    paint.setStrokeJoin(m_skiaState.m_stroke.join);
-    paint.setStrokeMiter(m_skiaState.m_stroke.miter);
-    paint.setStrokeWidth(SkFloatToScalar(strokeThickness()));
-    paint.setPathEffect(m_skiaState.m_stroke.dash);
     return paint;
 }
 
-void GraphicsContextSkia::setupStrokeSource(SkPaint& paint)
+SkPaint GraphicsContextSkia::extendedStrokePaint()
 {
+    auto paint = simpleStrokePaint();
+
     if (auto strokePattern = strokeBrush().pattern()) {
         paint.setShader(strokePattern->createPlatformPattern({ }, toSkSamplingOptions(imageInterpolationQuality())));
         trackAcceleratedRenderingFenceIfNeeded(paint);
@@ -546,6 +530,27 @@ void GraphicsContextSkia::setupStrokeSource(SkPaint& paint)
         paint.setShader(strokeGradient->shader(alpha(), strokeBrush().gradientSpaceTransform()));
     else
         paint.setColor(SkColor(strokeBrush().color().colorWithAlphaMultipliedBy(alpha())));
+
+    return paint;
+}
+
+void GraphicsContextSkia::resetSimpleFillPaint()
+{
+    m_simpleFillPaint.setStyle(SkPaint::kFill_Style);
+    updateSimpleFillPaintAntiAlias();
+    updateSimpleFillPaintBlendMode();
+}
+
+void GraphicsContextSkia::resetSimpleStrokePaint()
+{
+    m_simpleStrokePaint.setStyle(SkPaint::kStroke_Style);
+    updateSimpleStrokePaintAntiAlias();
+    updateSimpleStrokePaintBlendMode();
+    updateSimpleStrokePaintCap();
+    updateSimpleStrokePaintJoin();
+    updateSimpleStrokePaintMiter();
+    updateSimpleStrokePaintWidth();
+    updateSimpleStrokePaintDash();
 }
 
 void GraphicsContextSkia::drawSkiaRect(const SkRect& boundaries, SkPaint& paint)
@@ -566,8 +571,7 @@ void GraphicsContextSkia::fillRect(const FloatRect& boundaries, RequiresClipToRe
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createFillPaint();
-    setupFillSource(paint);
+    auto paint = extendedFillPaint();
     drawSkiaRect(boundaries, paint);
 }
 
@@ -576,9 +580,10 @@ void GraphicsContextSkia::fillRect(const FloatRect& boundaries, const Color& fil
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createFillPaint();
+    auto& paint = simpleFillPaint();
     paint.setColor(SkColor(fillColor));
     drawSkiaRect(boundaries, paint);
+    paint.setColor4f(SkColors::kBlack);
 }
 
 void GraphicsContextSkia::fillRect(const FloatRect& boundaries, Gradient& gradient, const AffineTransform& gradientSpaceTransform, RequiresClipToRect)
@@ -586,9 +591,10 @@ void GraphicsContextSkia::fillRect(const FloatRect& boundaries, Gradient& gradie
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createFillPaint();
+    auto& paint = simpleFillPaint();
     paint.setShader(gradient.shader(alpha(), gradientSpaceTransform));
     drawSkiaRect(boundaries, paint);
+    paint.setShader(nullptr);
 }
 
 void GraphicsContextSkia::resetClip()
@@ -727,7 +733,7 @@ void GraphicsContextSkia::drawDotsForDocumentMarker(const FloatRect& boundaries,
         && style.mode != DocumentMarkerLineStyleMode::Grammar)
         return;
 
-    SkPaint paint = createFillPaint();
+    auto paint = simpleFillPaint();
     paint.setColor(SkColor(style.color));
     m_canvas.drawPath(createErrorUnderlinePath(boundaries), paint);
 }
@@ -740,6 +746,25 @@ void GraphicsContextSkia::translate(float x, float y)
 void GraphicsContextSkia::didUpdateState(GraphicsContextState& state)
 {
     // FIXME: Handle stroke changes.
+
+    ASSERT(&state == &m_state);
+
+    if (state.changes().isEmpty())
+        return; // No actual changes.
+
+    if (m_state.changes().contains(GraphicsContextState::Change::CompositeMode)) {
+        updateSimpleFillPaintBlendMode();
+        updateSimpleStrokePaintBlendMode();
+    }
+
+    if (m_state.changes().contains(GraphicsContextState::Change::ShouldAntialias)) {
+        updateSimpleFillPaintAntiAlias();
+        updateSimpleStrokePaintAntiAlias();
+    }
+
+    if (m_state.changes().contains(GraphicsContextState::Change::StrokeThickness))
+        updateSimpleStrokePaintWidth();
+
     state.didApplyChanges();
 }
 
@@ -801,9 +826,10 @@ void GraphicsContextSkia::clearRect(const FloatRect& rect)
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    auto paint = createFillPaint();
+    auto& paint = simpleFillPaint();
     paint.setBlendMode(SkBlendMode::kClear);
     m_canvas.drawRect(rect, paint);
+    paint.setBlendMode(SkBlendMode::kSrcOver);
 }
 
 void GraphicsContextSkia::strokeRect(const FloatRect& boundaries, float lineWidth)
@@ -811,9 +837,8 @@ void GraphicsContextSkia::strokeRect(const FloatRect& boundaries, float lineWidt
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    auto strokePaint = createStrokePaint();
+    auto strokePaint = extendedStrokePaint();
     strokePaint.setStrokeWidth(SkFloatToScalar(lineWidth));
-    setupStrokeSource(strokePaint);
     drawSkiaRect(boundaries, strokePaint);
 }
 
@@ -833,6 +858,7 @@ void GraphicsContextSkia::setLineCap(LineCap lineCap)
     };
 
     m_skiaState.m_stroke.cap = toSkiaCap(lineCap);
+    updateSimpleStrokePaintCap();
 }
 
 static bool isValidDashArray(const DashArray& dashArray)
@@ -852,6 +878,7 @@ void GraphicsContextSkia::setLineDash(const DashArray& dashArray, float dashOffs
 {
     if (!isValidDashArray(dashArray)) {
         m_skiaState.m_stroke.dash = nullptr;
+        updateSimpleStrokePaintDash();
         return;
     }
 
@@ -866,6 +893,7 @@ void GraphicsContextSkia::setLineDash(const DashArray& dashArray, float dashOffs
         auto dashArraySpan = dashArray.span();
         m_skiaState.m_stroke.dash = SkDashPathEffect::Make(dashArraySpan.data(), dashArraySpan.size(), dashOffset);
     }
+    updateSimpleStrokePaintDash();
 }
 
 void GraphicsContextSkia::setLineJoin(LineJoin lineJoin)
@@ -884,11 +912,13 @@ void GraphicsContextSkia::setLineJoin(LineJoin lineJoin)
     };
 
     m_skiaState.m_stroke.join = toSkiaJoin(lineJoin);
+    updateSimpleStrokePaintJoin();
 }
 
 void GraphicsContextSkia::setMiterLimit(float miter)
 {
     m_skiaState.m_stroke.miter = SkFloatToScalar(miter);
+    updateSimpleStrokePaintMiter();
 }
 
 void GraphicsContextSkia::clipOut(const Path& path)
@@ -919,7 +949,7 @@ void GraphicsContextSkia::fillRoundedRectImpl(const FloatRoundedRect& rect, cons
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createFillPaint();
+    auto& paint = simpleFillPaint();
     paint.setColor(SkColor(color));
     bool inExtraTransparencyLayer = false;
     if (hasDropShadow()) {
@@ -930,6 +960,7 @@ void GraphicsContextSkia::fillRoundedRectImpl(const FloatRoundedRect& rect, cons
     m_canvas.drawRRect(rect, paint);
     if (inExtraTransparencyLayer)
         endTransparencyLayer();
+    paint.setColor4f(SkColors::kBlack);
 }
 
 void GraphicsContextSkia::fillRectWithRoundedHole(const FloatRect& outerRect, const FloatRoundedRect& innerRRect, const Color& color)
@@ -940,7 +971,7 @@ void GraphicsContextSkia::fillRectWithRoundedHole(const FloatRect& outerRect, co
     if (!makeGLContextCurrentIfNeeded())
         return;
 
-    SkPaint paint = createFillPaint();
+    auto paint = simpleFillPaint();
     paint.setColor(SkColor(color));
     paint.setImageFilter(createDropShadowFilterIfNeeded(ShadowStyle::Inset));
     m_canvas.drawDRRect(SkRRect::MakeRect(outerRect), innerRRect, paint);
@@ -985,7 +1016,7 @@ void GraphicsContextSkia::drawPattern(NativeImage& nativeImage, const FloatRect&
     SkMatrix shaderMatrix = SkMatrix::Concat(phaseMatrix, patternTransform);
     auto samplingOptions = toSkSamplingOptions(m_state.imageInterpolationQuality());
 
-    SkPaint paint = createFillPaint();
+    auto paint = simpleFillPaint();
     paint.setBlendMode(toSkiaBlendMode(options.compositeOperator(), options.blendMode()));
 
     auto size = nativeImage.size();
@@ -1114,8 +1145,7 @@ void GraphicsContextSkia::drawSkiaText(const sk_sp<SkTextBlob>& blob, SkScalar x
     }
 
     if (textDrawingMode().contains(TextDrawingMode::Fill)) {
-        SkPaint paint = createFillPaint();
-        setupFillSource(paint);
+        auto paint = extendedFillPaint();
         paint.setAntiAlias(enableAntialias);
         bool inExtraTransparencyLayer = false;
         if (hasDropShadow()) {
@@ -1129,8 +1159,7 @@ void GraphicsContextSkia::drawSkiaText(const sk_sp<SkTextBlob>& blob, SkScalar x
     }
 
     if (textDrawingMode().contains(TextDrawingMode::Stroke)) {
-        SkPaint paint = createStrokePaint();
-        setupStrokeSource(paint);
+        auto paint = extendedStrokePaint();
         paint.setAntiAlias(enableAntialias);
         m_canvas.drawTextBlob(blob, x, y, paint);
     }

@@ -177,9 +177,10 @@ sk_sp<SkShader> Gradient::shader(float globalAlpha, const AffineTransform& gradi
 
 void Gradient::fill(GraphicsContext& context, const FloatRect& rect)
 {
-    auto paint = static_cast<GraphicsContextSkia*>(&context)->createFillPaint();
+    auto& paint = static_cast<GraphicsContextSkia*>(&context)->simpleFillPaint();
     paint.setShader(shader(context.alpha(), context.fillGradientSpaceTransform()));
     context.platformContext()->drawRect(rect, paint);
+    paint.setShader(nullptr);
 }
 
 } // namespace WebCore

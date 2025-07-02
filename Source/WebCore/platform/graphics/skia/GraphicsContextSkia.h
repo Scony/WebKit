@@ -56,7 +56,7 @@ public:
     void beginRecording();
     SkiaImageToFenceMap endRecording();
 
-    void didUpdateState(GraphicsContextState&);
+    void didUpdateState(GraphicsContextState&) final;
 
     void setLineCap(LineCap) final;
     void setLineDash(const DashArray&, float) final;
@@ -110,8 +110,10 @@ public:
 
     RenderingMode renderingMode() const final;
 
-    SkPaint createFillPaint() const;
-    SkPaint createStrokePaint() const;
+    inline SkPaint& simpleFillPaint();
+    SkPaint extendedFillPaint();
+    inline SkPaint& simpleStrokePaint();
+    SkPaint extendedStrokePaint();
 
     void drawSkiaText(const sk_sp<SkTextBlob>&, SkScalar, SkScalar, bool, bool);
 
@@ -128,15 +130,27 @@ private:
     void trackAcceleratedRenderingFenceIfNeeded(const sk_sp<SkImage>&);
     void trackAcceleratedRenderingFenceIfNeeded(SkPaint&);
 
-    void setupFillSource(SkPaint&);
-    void setupStrokeSource(SkPaint&);
-
     enum class ShadowStyle : uint8_t { Outset, Inset };
     sk_sp<SkImageFilter> createDropShadowFilterIfNeeded(ShadowStyle) const;
     bool drawOutsetShadow(SkPaint&, Function<void(const SkPaint&)>&&);
 
     void drawSkiaRect(const SkRect&, SkPaint&);
     void drawSkiaPath(const SkPath&, SkPaint&);
+
+    static SkSamplingOptions toSkSamplingOptions(InterpolationQuality);
+    static SkBlendMode toSkiaBlendMode(CompositeOperator, BlendMode);
+
+    void resetSimpleFillPaint();
+    inline void updateSimpleFillPaintAntiAlias();
+    inline void updateSimpleFillPaintBlendMode();
+    void resetSimpleStrokePaint();
+    inline void updateSimpleStrokePaintAntiAlias();
+    inline void updateSimpleStrokePaintBlendMode();
+    inline void updateSimpleStrokePaintCap();
+    inline void updateSimpleStrokePaintJoin();
+    inline void updateSimpleStrokePaintMiter();
+    inline void updateSimpleStrokePaintWidth();
+    inline void updateSimpleStrokePaintDash();
 
     class SkiaState {
     public:
@@ -164,7 +178,64 @@ private:
     Vector<LayerState, 1> m_layerStateStack;
     SkiaImageToFenceMap m_imageToFenceMap;
     const DestinationColorSpace m_colorSpace;
+    SkPaint m_simpleFillPaint;
+    SkPaint m_simpleStrokePaint;
 };
+
+inline SkPaint& GraphicsContextSkia::simpleFillPaint()
+{
+    return m_simpleFillPaint;
+}
+
+inline void GraphicsContextSkia::updateSimpleFillPaintAntiAlias()
+{
+    m_simpleFillPaint.setAntiAlias(shouldAntialias());
+}
+
+inline void GraphicsContextSkia::updateSimpleFillPaintBlendMode()
+{
+    m_simpleFillPaint.setBlendMode(toSkiaBlendMode(compositeMode().operation, blendMode()));
+}
+
+inline SkPaint& GraphicsContextSkia::simpleStrokePaint()
+{
+    return m_simpleStrokePaint;
+}
+
+inline void GraphicsContextSkia::updateSimpleStrokePaintAntiAlias()
+{
+    m_simpleStrokePaint.setAntiAlias(shouldAntialias());
+}
+
+inline void GraphicsContextSkia::updateSimpleStrokePaintBlendMode()
+{
+    m_simpleStrokePaint.setBlendMode(toSkiaBlendMode(compositeMode().operation, blendMode()));
+}
+
+inline void GraphicsContextSkia::updateSimpleStrokePaintCap()
+{
+    m_simpleStrokePaint.setStrokeCap(m_skiaState.m_stroke.cap);
+}
+
+inline void GraphicsContextSkia::updateSimpleStrokePaintJoin()
+{
+    m_simpleStrokePaint.setStrokeJoin(m_skiaState.m_stroke.join);
+}
+
+inline void GraphicsContextSkia::updateSimpleStrokePaintMiter()
+{
+    m_simpleStrokePaint.setStrokeMiter(m_skiaState.m_stroke.miter);
+}
+
+inline void GraphicsContextSkia::updateSimpleStrokePaintWidth()
+{
+    m_simpleStrokePaint.setStrokeWidth(SkFloatToScalar(strokeThickness()));
+}
+
+inline void GraphicsContextSkia::updateSimpleStrokePaintDash()
+{
+    m_simpleStrokePaint.setPathEffect(m_skiaState.m_stroke.dash);
+}
 
 } // namespace WebCore
 

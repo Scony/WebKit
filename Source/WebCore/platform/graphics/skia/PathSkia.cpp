@@ -327,7 +327,7 @@ bool PathSkia::strokeContains(const FloatPoint& point, NOESCAPE const Function<v
     strokeStyleApplier(graphicsContext);
 
     // FIXME: Compute stroke precision.
-    SkPaint paint = graphicsContext.createStrokePaint();
+    auto& paint = graphicsContext.simpleStrokePaint();
     SkPath strokePath;
     skpathutils::FillPathWithPaint(m_platformPath, paint, &strokePath, nullptr);
     return strokePath.contains(SkScalar(point.x()), SkScalar(point.y()));
@@ -351,7 +351,7 @@ FloatRect PathSkia::strokeBoundingRect(NOESCAPE const Function<void(GraphicsCont
 
     // Skia stroke resolution scale for reduced-precision requirements.
     constexpr float strokePrecision = 0.3f;
-    SkPaint paint = graphicsContext.createStrokePaint();
+    auto& paint = graphicsContext.simpleStrokePaint();
     SkPath strokePath;
     skpathutils::FillPathWithPaint(m_platformPath, paint, &strokePath, nullptr, strokePrecision);
     return strokePath.computeTightBounds();

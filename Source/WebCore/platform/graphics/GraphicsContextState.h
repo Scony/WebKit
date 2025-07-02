@@ -82,7 +82,7 @@ public:
     void repurpose(Purpose);
     GraphicsContextState clone(Purpose) const;
 
-    ChangeFlags changes() const { return m_changeFlags; }
+    const ChangeFlags& changes() const { return m_changeFlags; }
     void didApplyChanges() { m_changeFlags = { }; }
 
     SourceBrush& fillBrush() { return m_fillBrush; }
