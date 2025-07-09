@@ -160,7 +160,11 @@ private:
             return;
 #endif
         this->*property = value;
+#if !USE(SKIA)
         m_changeFlags.add(change);
+#else
+        UNUSED_PARAM(change);
+#endif
     }
 
     template<typename T>
@@ -171,7 +175,11 @@ private:
             return;
 #endif
         this->*property = std::forward<T>(value);
+#if !USE(SKIA)
         m_changeFlags.add(change);
+#else
+        UNUSED_PARAM(change);
+#endif
     }
 
     SourceBrush m_fillBrush { Color::black };
