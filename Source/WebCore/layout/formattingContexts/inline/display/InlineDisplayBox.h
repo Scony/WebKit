@@ -144,6 +144,7 @@ struct Box {
     void setHasContent() { m_hasContent = true; }
     void setIsFullyTruncated() { m_isFullyTruncated = true; }
 
+    void setText(Text&&);
     Text& text() { ASSERT(isTextOrSoftLineBreak()); return m_text; }
     const Text& text() const { ASSERT(isTextOrSoftLineBreak()); return m_text; }
 
@@ -304,6 +305,11 @@ inline void Box::setRect(const FloatRect& rect, const FloatRect& inkOverflow)
 {
     m_unflippedVisualRect = rect;
     m_inkOverflow = inkOverflow;
+}
+
+inline void Box::setText(Text&& text)
+{
+    m_text = WTFMove(text);
 }
 
 inline void Box::removeFromGlyphDisplayListCache()
