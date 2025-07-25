@@ -71,7 +71,7 @@ bool RenderTextFragment::canBeSelectionLeaf() const
     return textNode() && textNode()->hasEditableStyle();
 }
 
-void RenderTextFragment::setTextInternal(const String& newText, bool force)
+void RenderTextFragment::setTextInternal(const String& newText, bool force, bool)
 {
     RenderText::setTextInternal(newText, force);
 

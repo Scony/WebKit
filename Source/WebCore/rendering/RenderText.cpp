@@ -1811,7 +1811,43 @@ static void invalidateLineLayoutPathOnContentChangeIfNeeded(RenderText& renderer
         container->invalidateLineLayoutPath(RenderBlockFlow::InvalidationReason::ContentChange);
 }
 
-void RenderText::setTextInternal(const String& text, bool force)
+static void updateLineLayoutPathOnInplaceContentChangeIfNeeded(RenderText& renderer, std::optional<size_t> offset, size_t oldLength)
+{
+    auto* container = LayoutIntegration::LineLayout::blockContainer(renderer);
+    if (!container)
+        return;
+
+    auto* inlineLayout = container->inlineLayout();
+    if (!inlineLayout)
+        return;
+
+    if (!inlineLayout->updateTextContent(renderer, offset, oldLength) || !inlineLayout->propagateInplaceTextContentChange(renderer))
+        container->invalidateLineLayoutPath(RenderBlockFlow::InvalidationReason::ContentChange);
+}
+
+bool RenderText::canSkipLayout(const String& newText) const
+{
+    // Under certain circumstances it's possible to skip layout despite text node change.
+    // In such case it's just enough to propagate text change internally and trigger repaint.
+
+    if (auto* container = dynamicDowncast<RenderBlockFlow>(parent())) {
+        return container->style().containsLayout()
+            && container->style().containsSize()
+            && container->style().containsStyle()
+            && container->style().containsPaint()
+            && container->style().whiteSpaceCollapse() == WhiteSpaceCollapse::Preserve
+            && container->style().textWrapMode() == TextWrapMode::NoWrap
+            && container->style().isLeftToRightDirection()
+            && (container->style().textAlign() == TextAlignMode::Start || container->style().textAlign() == TextAlignMode::Left)
+            && container->inlineLayout()
+            && !container->inlineLayout()->preventsSkippingLayout()
+            && !newText.contains('\n');
+    }
+
+    return false;
+}
+
+void RenderText::setTextInternal(const String& text, bool force, bool skipLayout)
 {
     ASSERT(!text.isNull());
 
@@ -1826,7 +1862,11 @@ void RenderText::setTextInternal(const String& text, bool force)
 
     setRenderedText(text);
 
-    setNeedsLayoutAndPreferredWidthsUpdate();
+    if (skipLayout)
+        parent()->repaint();
+    else
+        setNeedsLayoutAndPreferredWidthsUpdate();
+
     m_knownToHaveNoOverflowAndNoFallbackFonts = false;
 
     if (AXObjectCache* cache = document().existingAXObjectCache())
@@ -1836,9 +1876,14 @@ void RenderText::setTextInternal(const String& text, bool force)
 void RenderText::setText(const String& newContent, bool force)
 {
     auto isDifferent = newContent != text();
-    setTextInternal(newContent, force);
-    if (isDifferent || force)
-        invalidateLineLayoutPathOnContentChangeIfNeeded(*this, { }, { });
+    const auto skipLayout = canSkipLayout(newContent);
+    setTextInternal(newContent, force, skipLayout);
+    if (isDifferent || force) {
+        if (skipLayout)
+            updateLineLayoutPathOnInplaceContentChangeIfNeeded(*this, { }, { });
+        else
+            invalidateLineLayoutPathOnContentChangeIfNeeded(*this, { }, { });
+    }
 }
 
 void RenderText::setTextWithOffset(const String& newText, unsigned offset)
@@ -1847,8 +1892,12 @@ void RenderText::setTextWithOffset(const String& newText, unsigned offset)
         return;
 
     size_t oldLength = text().length();
-    setTextInternal(newText, false);
-    invalidateLineLayoutPathOnContentChangeIfNeeded(*this, offset, oldLength);
+    const auto skipLayout = canSkipLayout(newText);
+    setTextInternal(newText, false, skipLayout);
+    if (skipLayout)
+        updateLineLayoutPathOnInplaceContentChangeIfNeeded(*this, offset, oldLength);
+    else
+        invalidateLineLayoutPathOnContentChangeIfNeeded(*this, offset, oldLength);
 }
 
 String RenderText::textWithoutConvertingBackslashToYenSymbol() const
