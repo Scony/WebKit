@@ -609,6 +609,17 @@ void ContainerNode::insertBeforeCommon(Node& nextChild, Node& newChild)
     newChild.setParentNode(this);
     newChild.setPreviousSibling(previousSibling.get());
     newChild.setNextSibling(&nextChild);
+
+    // Invalidate childIndex-es of affected siblings.
+    CheckedPtr siblingWithAffectedIndex = &nextChild;
+    while (siblingWithAffectedIndex) {
+        if (CheckedPtr siblingElementWithAffectedIndex = dynamicDowncast<Element>(siblingWithAffectedIndex.get())) {
+            if (!siblingElementWithAffectedIndex->childIndex())
+                break;
+            siblingElementWithAffectedIndex->setChildIndex(0);
+        }
+        siblingWithAffectedIndex = siblingWithAffectedIndex->nextSibling();
+    }
 }
 
 void ContainerNode::appendChildCommon(Node& child)
@@ -789,6 +800,19 @@ void ContainerNode::removeBetween(Node* previousChild, Node* nextChild, Node& ol
     oldChild.setParentNode(nullptr);
 
     oldChild.setTreeScopeRecursively(document());
+
+    if (nextChild) {
+        // Invalidate childIndex-es of affected siblings.
+        CheckedPtr siblingWithAffectedIndex = nextChild;
+        while (siblingWithAffectedIndex) {
+            if (CheckedPtr siblingElementWithAffectedIndex = dynamicDowncast<Element>(siblingWithAffectedIndex.get())) {
+                if (!siblingElementWithAffectedIndex->childIndex())
+                    break;
+                siblingElementWithAffectedIndex->setChildIndex(0);
+            }
+            siblingWithAffectedIndex = siblingWithAffectedIndex->nextSibling();
+        }
+    }
 }
 
 void ContainerNode::parserRemoveChild(Node& oldChild)

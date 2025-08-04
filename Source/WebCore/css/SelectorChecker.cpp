@@ -155,6 +155,14 @@ static inline bool isLastOfType(const Element& element, const QualifiedName& typ
     return true;
 }
 
+static inline int countElementsBeforeSlow(const Element& element)
+{
+    int count = 0;
+    for (const Element* sibling = ElementTraversal::previousSibling(element); sibling; sibling = ElementTraversal::previousSibling(*sibling))
+        count++;
+    return count;
+}
+
 static inline int countElementsBefore(const Element& element)
 {
     int count = 0;
@@ -166,6 +174,7 @@ static inline int countElementsBefore(const Element& element)
         }
         count++;
     }
+    ASSERT(count == countElementsBeforeSlow(element));
     return count;
 }
 
