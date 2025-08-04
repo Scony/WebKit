@@ -609,6 +609,14 @@ void ContainerNode::insertBeforeCommon(Node& nextChild, Node& newChild)
     newChild.setParentNode(this);
     newChild.setPreviousSibling(previousSibling.get());
     newChild.setNextSibling(&nextChild);
+
+    // Invalidate childIndex-es of affected siblings.
+    CheckedPtr siblingWithAffectedIndex = &nextChild;
+    while (siblingWithAffectedIndex) {
+        if (CheckedPtr siblingElementWithAffectedIndex = dynamicDowncast<Element>(siblingWithAffectedIndex.get()))
+            siblingElementWithAffectedIndex->setChildIndex(0);
+        siblingWithAffectedIndex = siblingWithAffectedIndex->nextSibling();
+    }
 }
 
 void ContainerNode::appendChildCommon(Node& child)
