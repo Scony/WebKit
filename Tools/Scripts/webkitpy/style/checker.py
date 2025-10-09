@@ -241,6 +241,7 @@ _PATH_RULES_SPECIFIER = [
      ["-readability/naming/underscores",
       "-safercpp/atoi",
       "-safercpp/printf",
+      "-security/printf",
       "-runtime/lock_guard",
       "-runtime/wtf_make_unique",
       "-runtime/wtf_move"]),

@@ -269,6 +269,15 @@ public:
         } else {
             unsigned newId = sysprof_collector_request_counters(1);
 
+            // Temporary workaround for libsysprof-capture providing conflicting IDs to threads.
+            static unsigned maxId = 0;
+            if (newId <= maxId) {
+                if (newId < maxId)
+                    sysprof_collector_request_counters(maxId - newId);
+                newId = sysprof_collector_request_counters(1);
+            }
+            maxId = newId;
+
             m_counters.add(static_cast<const void*>(name.data()), newId);
 
             SysprofCaptureCounter counter = { };
