@@ -31,6 +31,11 @@
 #include <WebCore/Region.h>
 #include <wtf/RunLoop.h>
 
+#if PLATFORM(WPE)
+#include "AcceleratedSurface.h"
+#include <WebCore/GLContext.h>
+#endif
+
 namespace WebCore {
 class GraphicsContext;
 }
@@ -148,6 +153,12 @@ private:
 
     // The layer tree host that handles accelerated compositing.
     std::unique_ptr<LayerTreeHost> m_layerTreeHost;
+
+#if PLATFORM(WPE)
+    RefPtr<AcceleratedSurface> m_surface;
+    std::unique_ptr<WebCore::GLContext> m_context;
+    bool m_canRenderNextFrame = true;
+#endif
 
     WebCore::Region m_dirtyRegion;
     WebCore::IntRect m_scrollRect;

@@ -29,6 +29,7 @@
 
 #include "MessageReceiver.h"
 #include <WebCore/Damage.h>
+#include <WebCore/GraphicsContextSkia.h>
 #include <WebCore/IntSize.h>
 #include <wtf/RunLoop.h>
 #include <wtf/TZoneMalloc.h>
@@ -56,6 +57,7 @@ class RunLoop;
 
 namespace WebCore {
 class GLFence;
+class GraphicsContext;
 class ShareableBitmap;
 class ShareableBitmapHandle;
 }
@@ -93,6 +95,8 @@ public:
         return true;
 #endif
     }
+
+    WebCore::GraphicsContext* graphicsContext();
 
     void willDestroyGLContext();
     void willRenderFrame(const WebCore::IntSize&);
@@ -133,6 +137,8 @@ private:
 
         uint64_t id() const { return m_id; }
 
+        virtual WebCore::GraphicsContext* graphicsContext() { constexpr auto notImplemented = false; RELEASE_ASSERT(notImplemented); return nullptr; }
+
         virtual void willRenderFrame() { }
         virtual void didRenderFrame(Vector<WebCore::IntRect, 1>&&) { }
 
@@ -167,6 +173,8 @@ private:
     protected:
         RenderTargetShareableBuffer(uint64_t, const WebCore::IntSize&);
 
+        WebCore::GraphicsContext* graphicsContext() override;
+
         void willRenderFrame() override;
         void didRenderFrame(Vector<WebCore::IntRect, 1>&&) override;
 
@@ -178,6 +186,11 @@ private:
         unsigned m_depthStencilBuffer { 0 };
         UnixFileDescriptor m_renderingFenceFD;
         UnixFileDescriptor m_releaseFenceFD;
+        struct {
+            sk_sp<SkSurface> surface;
+            std::unique_ptr<WebCore::GraphicsContextSkia> context;
+        } m_graphicsContext;
+        WebCore::IntSize m_initialSize;
     };
 
 #if USE(GBM)

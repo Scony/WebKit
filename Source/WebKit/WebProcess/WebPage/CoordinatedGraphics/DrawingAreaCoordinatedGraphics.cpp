@@ -61,6 +61,10 @@
 #include "LayerTreeHostTextureMapper.h"
 #endif
 
+#if PLATFORM(WPE)
+#include <WebCore/PlatformDisplay.h>
+#endif
+
 namespace WebKit {
 using namespace WebCore;
 
@@ -97,12 +101,14 @@ void DrawingAreaCoordinatedGraphics::setNeedsDisplayInRect(const IntRect& rect)
         return;
     }
 
+#if !PLATFORM(WPE)
     IntRect dirtyRect = rect;
     dirtyRect.intersect(m_webPage->bounds());
     if (dirtyRect.isEmpty())
         return;
 
     m_dirtyRegion.unite(dirtyRect);
+#endif
     scheduleDisplay();
 }
 
@@ -114,6 +120,12 @@ void DrawingAreaCoordinatedGraphics::scroll(const IntRect& scrollRect, const Int
         ASSERT(m_dirtyRegion.isEmpty());
         return;
     }
+#if PLATFORM(WPE)
+    else {
+        constexpr auto notImplemented = false;
+        RELEASE_ASSERT(notImplemented);
+    }
+#endif
 
     if (scrollRect.isEmpty())
         return;
@@ -240,8 +252,23 @@ void DrawingAreaCoordinatedGraphics::updatePreferences(const WebPreferencesStore
 bool DrawingAreaCoordinatedGraphics::enterAcceleratedCompositingModeIfNeeded()
 {
     ASSERT(!m_layerTreeHost);
-    if (!m_alwaysUseCompositing)
+    if (!m_alwaysUseCompositing) {
+#if PLATFORM(WPE)
+        m_surface = AcceleratedSurface::create(m_webPage.get(), [this] {
+            m_canRenderNextFrame = true;
+        });
+        static_assert(sizeof(GLNativeWindowType) <= sizeof(uint64_t), "GLNativeWindowType must not be longer than 64 bits.");
+        auto nativeSurfaceHandle = (GLNativeWindowType)m_surface->window();
+        m_context = GLContext::create(PlatformDisplay::sharedDisplay(), nativeSurfaceHandle);
+        if (m_context && m_context->makeContextCurrent()) {
+            m_surface->didCreateCompositingRunLoop(RunLoop::mainSingleton());
+            LayerTreeContext layerTreeContext;
+            layerTreeContext.contextID = m_surface->surfaceID();
+            send(Messages::DrawingAreaProxy::EnterAcceleratedCompositingMode(0, layerTreeContext));
+        }
+#endif
         return false;
+    }
 
     enterAcceleratedCompositingMode(nullptr);
     return true;
@@ -377,8 +404,10 @@ void DrawingAreaCoordinatedGraphics::updateGeometry(const IntSize& size, Complet
             updateInfo.deviceScaleFactor = webPage->corePage()->deviceScaleFactor();
         } else
             display(updateInfo);
+#if !PLATFORM(WPE)
         if (!m_layerTreeHost)
             send(Messages::DrawingAreaProxy::Update(0, WTFMove(updateInfo)));
+#endif
     }
 
     completionHandler();
@@ -683,6 +712,7 @@ void DrawingAreaCoordinatedGraphics::display()
     m_scheduledWhileWaitingForDidUpdate = false;
 }
 
+#if !PLATFORM(WPE)
 static bool shouldPaintBoundsRect(const IntRect& bounds, const Vector<IntRect, 1>& rects)
 {
     const size_t rectThreshold = 10;
@@ -703,11 +733,20 @@ static bool shouldPaintBoundsRect(const IntRect& bounds, const Vector<IntRect, 1
 
     return wastedSpace <= wastedSpaceThreshold;
 }
+#endif
 
 void DrawingAreaCoordinatedGraphics::display(UpdateInfo& updateInfo)
 {
     ASSERT(!m_isPaintingSuspended || m_inUpdateGeometry);
     ASSERT(!m_layerTreeHost);
+
+#if PLATFORM(WPE)
+    // Delay frame rendering if previous frame is still being processed by UI Process.
+    if (!m_canRenderNextFrame) {
+        m_displayTimer.startOneShot(20_us);
+        return;
+    }
+#endif
 
     Ref webPage = m_webPage.get();
     webPage->updateRendering();
@@ -719,6 +758,18 @@ void DrawingAreaCoordinatedGraphics::display(UpdateInfo& updateInfo)
     if (m_layerTreeHost)
         return;
 
+#if PLATFORM(WPE)
+    auto viewportSize = webPage->size();
+    m_surface->willRenderFrame(viewportSize);
+    if (!m_context || !m_context->makeContextCurrent())
+        return;
+
+    const IntRect rect = { { }, webPage->size() };
+    webPage->drawRect(*m_surface->graphicsContext(), rect); // FIXME: Consider using render target damage not to re-paint whole rect.
+
+    m_canRenderNextFrame = false;
+    m_surface->didRenderFrame();
+#else
     if (m_dirtyRegion.isEmpty())
         return;
 
@@ -766,6 +817,7 @@ void DrawingAreaCoordinatedGraphics::display(UpdateInfo& updateInfo)
             webPage->drawRect(*graphicsContext, rect);
         updateInfo.updateRects.append(rect);
     }
+#endif
 
     webPage->didUpdateRendering();
 
