@@ -239,14 +239,6 @@ void RenderInline::absoluteQuads(Vector<FloatQuad>& quads, bool*) const
     generateLineBoxRects(context);
 }
 
-#if PLATFORM(IOS_FAMILY)
-void RenderInline::absoluteQuadsForSelection(Vector<FloatQuad>& quads) const
-{
-    AbsoluteQuadsGeneratorContext context(this, quads);
-    generateLineBoxRects(context);
-}
-#endif
-
 LayoutUnit RenderInline::offsetLeft() const
 {
     return adjustedPositionRelativeToOffsetParent(firstInlineBoxTopLeft()).x();
@@ -679,21 +671,6 @@ const RenderElement* RenderInline::pushMappingToContainer(const RenderLayerModel
     pushOntoGeometryMap(geometryMap, ancestorToStopAt, container, ancestorSkipped);
 
     return ancestorSkipped ? ancestorToStopAt : container;
-}
-
-void RenderInline::updateHitTestResult(HitTestResult& result, const LayoutPoint& point) const
-{
-    if (result.innerNode())
-        return;
-
-    LayoutPoint localPoint(point);
-    if (RefPtr node = nodeForHitTest()) {
-        result.setInnerNode(node.get());
-        if (!result.innerNonSharedNode())
-            result.setInnerNonSharedNode(node.get());
-        result.setPseudoElementIdentifier(style().pseudoElementIdentifier());
-        result.setLocalPoint(localPoint);
-    }
 }
 
 void RenderInline::deleteLegacyLineBoxes()

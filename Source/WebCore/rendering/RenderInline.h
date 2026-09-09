@@ -77,10 +77,6 @@ public:
     LegacyInlineFlowBox* firstLegacyInlineBox() const LIFETIME_BOUND { return m_legacyLineBoxes.firstLegacyLineBox(); }
     LegacyInlineFlowBox* lastLegacyInlineBox() const LIFETIME_BOUND { return m_legacyLineBoxes.lastLegacyLineBox(); }
 
-#if PLATFORM(IOS_FAMILY)
-    void absoluteQuadsForSelection(Vector<FloatQuad>& quads) const override;
-#endif
-    
     LayoutSize offsetForInFlowPositionedInline(const RenderBox* child) const;
 
     void collectLineBoxRects(Vector<LayoutRect>&, const LayoutPoint& additionalOffset) const;
@@ -136,8 +132,6 @@ private:
     virtual std::unique_ptr<LegacyInlineFlowBox> createInlineFlowBox(); // Subclassed by RenderSVGInline
 
     void dirtyLineFromChangedChild() final { m_legacyLineBoxes.dirtyLineFromChangedChild(*this); }
-
-    void updateHitTestResult(HitTestResult&, const LayoutPoint&) const final;
 
     void imageChanged(WrappedImagePtr, const IntRect* = 0) final;
 
