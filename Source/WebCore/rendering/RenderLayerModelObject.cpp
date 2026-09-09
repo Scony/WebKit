@@ -872,6 +872,8 @@ void RenderLayerModelObject::updateTransformAndRepaintForSVGAfterAttributeChange
             if (CheckedPtr svgAncestor = dynamicDowncast<RenderLayerModelObject>(ancestor.get())) {
                 svgAncestor->invalidateCachedSVGTransformDependentBoundingBoxes();
                 svgAncestor->invalidateCachedVisualOverflowRect();
+                if (svgAncestor->hasLayer())
+                    svgAncestor->layer()->setNeedsPositionUpdate();
             }
             if (ancestor->isRenderSVGRoot())
                 break;
